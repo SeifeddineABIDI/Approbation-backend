@@ -1,7 +1,10 @@
 package tn.esprit.pfe.approbation.config;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -34,19 +37,23 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 @EnableMethodSecurity
 public class SecurityConfiguration {
-
+    public ResourceLoader resourceLoader() {
+        return new DefaultResourceLoader();
+    }
     private static final String[] WHITE_LIST_URL = {
+            "/**",
             "/swagger-ui/**",
-            "/api/v1/auth/**",
+            "/swagger-ui.html",
+            "/v3/api-docs/**",
+            "/webjars/**",
             "/v2/api-docs",
             "/v3/api-docs",
-            "/v3/api-docs/**",
             "/swagger-resources",
             "/swagger-resources/**",
             "/configuration/ui",
+            "/api/v1/auth/**",
             "/configuration/security",
-            "/webjars/**",
-            "/swagger-ui.html"};
+        };
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
     private final LogoutHandler logoutHandler;

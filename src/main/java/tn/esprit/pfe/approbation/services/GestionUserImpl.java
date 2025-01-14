@@ -28,7 +28,7 @@ public class GestionUserImpl implements IGestionUser {
         }
         return userRepository.save(user);
         }
-    private String generateMatricule() {
+    public String generateMatricule() {
         int currentYearShort = Year.now().getValue() % 100;
         int currentMonth = LocalDate.now().getMonthValue();
 

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import tn.esprit.pfe.approbation.config.JwtService;
 import tn.esprit.pfe.approbation.entities.User;
 import tn.esprit.pfe.approbation.repositories.UserRepository;
+import tn.esprit.pfe.approbation.services.GestionUserImpl;
 import tn.esprit.pfe.approbation.token.Token;
 import tn.esprit.pfe.approbation.token.TokenRepository;
 import tn.esprit.pfe.approbation.token.TokenType;
@@ -29,14 +30,16 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-
+    private  final GestionUserImpl gestionUser;
     public AuthenticationResponse register(RegisterRequest request) {
+
         var user = User.builder()
                 .firstName(request.getFirstname())
                 .lastName(request.getLastname())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole())
+                .matricule(gestionUser.generateMatricule())
                 .build();
         var savedUser = repository.save(user);
         var jwtToken = jwtService.generateToken(user);
