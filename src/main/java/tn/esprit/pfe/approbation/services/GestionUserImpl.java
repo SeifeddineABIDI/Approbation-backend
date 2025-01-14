@@ -6,6 +6,8 @@ import tn.esprit.pfe.approbation.entities.User;
 import tn.esprit.pfe.approbation.repositories.UserRepository;
 
 import java.time.LocalDate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.time.Year;
 import java.util.List;
 
@@ -14,6 +16,8 @@ public class GestionUserImpl implements IGestionUser {
 
     @Autowired
     UserRepository userRepository;
+
+    private static final Logger logger = LoggerFactory.getLogger(GestionUserImpl.class);
 
 
     @Override
@@ -33,7 +37,7 @@ public class GestionUserImpl implements IGestionUser {
         int currentMonth = LocalDate.now().getMonthValue();
 
         String lastMatricule = userRepository.findLastMatricule();
-        System.out.println("Last matricule from database: " + lastMatricule);
+        logger.info("Last matricule from database: {}", lastMatricule);
 
         int nextSequence = 1;
 
@@ -44,25 +48,25 @@ public class GestionUserImpl implements IGestionUser {
                     int monthFromLastMatricule = Integer.parseInt(lastMatricule.substring(2, 4));
                     int sequenceFromLastMatricule = Integer.parseInt(lastMatricule.substring(7));
 
-                    System.out.println("Parsed Year: " + yearFromLastMatricule + ", Month: " + monthFromLastMatricule + ", Sequence: " + sequenceFromLastMatricule);
+                    logger.debug("Parsed Year: {}, Month: {}, Sequence: {}", yearFromLastMatricule, monthFromLastMatricule, sequenceFromLastMatricule);
 
                     if (yearFromLastMatricule == currentYearShort && monthFromLastMatricule == currentMonth) {
                         nextSequence = sequenceFromLastMatricule + 1;
                     } else {
-                        System.out.println("Year or month mismatch. Resetting sequence.");
+                        logger.info("Year or month mismatch. Resetting sequence.");
                     }
                 } else {
-                    System.out.println("Matricule format mismatch. Ignoring: " + lastMatricule);
+                    logger.warn("Matricule format mismatch. Ignoring: {}", lastMatricule);
                 }
             } catch (NumberFormatException | IndexOutOfBoundsException e) {
-                System.err.println("Error parsing last matricule: " + lastMatricule + ". Exception: " + e.getMessage());
+                logger.error("Error parsing last matricule: {}. Exception: {}", lastMatricule, e.getMessage());
             }
         } else {
-            System.out.println("No matricule found. Starting from sequence 1.");
+            logger.info("No matricule found. Starting from sequence 1.");
         }
 
         String generatedMatricule = String.format("%02d%02dEMP%03d", currentYearShort, currentMonth, nextSequence);
-        System.out.println("Generated matricule: " + generatedMatricule);
+        logger.info("Generated matricule: {}", generatedMatricule);
 
         return generatedMatricule;
     }
