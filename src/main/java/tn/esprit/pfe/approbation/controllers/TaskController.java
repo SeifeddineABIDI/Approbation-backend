@@ -1,4 +1,4 @@
-package tn.esprit.pfe.approbation.Controllers;
+package tn.esprit.pfe.approbation.controllers;
 
 import jakarta.validation.Valid;
 import org.camunda.bpm.engine.RuntimeService;
@@ -11,9 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import tn.esprit.pfe.approbation.DTOs.TaskConfirmationDTO;
-import tn.esprit.pfe.approbation.DTOs.TaskDTO;
-import tn.esprit.pfe.approbation.Services.LeaveService;
+import tn.esprit.pfe.approbation.dtos.TaskConfirmationDTO;
+import tn.esprit.pfe.approbation.dtos.TaskDTO;
+import tn.esprit.pfe.approbation.delegate.UpdateConge;
+import tn.esprit.pfe.approbation.services.LeaveService;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,8 @@ public class TaskController {
     private LeaveService leaveService;
     @Autowired
     private RuntimeService runtimeService;
+    @Autowired
+    private UpdateConge updateConge;
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<TaskDTO>> getTasksByUser(@PathVariable String userId) {

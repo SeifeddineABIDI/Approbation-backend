@@ -1,4 +1,4 @@
-package tn.esprit.pfe.approbation.Entities;
+package tn.esprit.pfe.approbation.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

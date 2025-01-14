@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leave Request Notification</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', sans-serif;
+            background-color: #2e2e2e;
+            margin: 0;
+            padding: 0;
+            color: #fff;
+        }
+        .container {
+            background-color: #1c1c1c;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+        }
+        .logo {
+            display: block;
+            margin: 0 auto 20px;
+            width: 100px;
+            height: auto;
+        }
+        h2 {
+            color: #122c8f;
+            font-size: 34px;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+        p {
+            color: #ccc;
+            line-height: 1.7;
+            font-size: 16px;
+            margin: 15px 0;
+        }
+        .status {
+            font-weight: 700;
+            font-size: 20px;
+            display: inline-block;
+            margin-top: 20px;
+            text-transform: uppercase;
+        }
+        .approved {
+            color: #00e676; /* Bright green for approved */
+        }
+        .denied {
+            color: #f44336; /* Bright red for denied */
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 14px;
+            color: #888;
+        }
+        .footer a {
+            text-decoration: none;
+            color: #00e676;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Add logo here -->
+    <img src="cid:logo" alt="Company Logo" class="logo">
+
+    <h2>Leave Request Status</h2>
+    <p>Dear <span th:text="${userName}">[UserName]</span>,</p>
+    <p>Your leave request has been
+        <span class="status" th:classappend="${status == 'approved' ? ' approved' : (status == 'rejected' ? ' denied' : '')}"
+              th:text="${status}">[Status]</span>.
+    </p>
+    <p th:text="${message}">[Message]</p>
+    <p>Thank you,</p>
+    <p>HR Team</p>
+
+    <div class="footer">
+        &copy; <span th:text="${#dates.format(new java.util.Date(), 'yyyy')}">2025</span> HR Department. All rights reserved.
+    </div>
+</div>
+</body>
+</html>

@@ -1,4 +1,4 @@
-package tn.esprit.pfe.approbation.DTOs;
+package tn.esprit.pfe.approbation.dtos;
 
 import java.time.LocalDate;
 

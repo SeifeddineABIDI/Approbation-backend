@@ -1,0 +1,10 @@
+POST http://localhost:8080/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "firstname": "Seifeddine",
+  "lastname": "Abidi",
+  "email":  "seifeddine.abidi@esprit.tn",
+  "password": "password",
+  "role":  "ADMIN"
+}
