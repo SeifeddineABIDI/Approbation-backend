@@ -1,10 +1,14 @@
 package tn.esprit.pfe.approbation.controllers;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tn.esprit.pfe.approbation.dtos.LeaveRequestDto;
+import tn.esprit.pfe.approbation.dtos.UserDto;
 import tn.esprit.pfe.approbation.entities.LeaveRequest;
 import tn.esprit.pfe.approbation.entities.User;
 import tn.esprit.pfe.approbation.repositories.LeaveRequestRepository;
@@ -12,10 +16,17 @@ import tn.esprit.pfe.approbation.repositories.UserRepository;
 import tn.esprit.pfe.approbation.services.IGestionUser;
 import tn.esprit.pfe.approbation.services.LeaveService;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/api/v1/management")
+@Tag(name = "Management")
+
 public class UserController {
     @Autowired
     IGestionUser gestionUser;
@@ -25,29 +36,49 @@ public class UserController {
     private LeaveRequestRepository leaveRequestRepository;
     @Autowired
     private UserRepository userRepository;
-    @GetMapping("/all")
-    public ResponseEntity<List<User>> getUsers(){
-        try {
-            List<User> users = gestionUser.findAll();
-            users.forEach(user -> System.out.println(user));
-            return ResponseEntity.ok(users);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
+
+
 
     @PostMapping("/request")
     public ResponseEntity<String> requestLeave(@RequestBody LeaveRequestDto request) {
         String response = leaveService.handleLeaveRequest(request);
         return ResponseEntity.ok(response);
     }
+
     @GetMapping("/requests/all/{userId}")
-    public List<LeaveRequest> getRequests(@PathVariable String userId){
-        return leaveService.getApprovedLeaveRequests(userId);}
+    public List<LeaveRequest> getRequests(@PathVariable String userId) {
+        return leaveService.getApprovedLeaveRequests(userId);
+    }
 
     @PostMapping("/add")
-    public ResponseEntity<User> addUser(@RequestBody User user){
+    public ResponseEntity<User> addUser(@RequestBody User user) {
         gestionUser.addUser(user);
         return ResponseEntity.ok(user);
+    }
+    @CrossOrigin(origins = "http://localhost:4200")
+    @GetMapping("/{userId}/image")
+    public ResponseEntity<byte[]> getUserImage(@PathVariable Integer userId) {
+        // Retrieve user by ID
+        Optional<User> user = userRepository.findById(userId);
+        if (user == null || user.get() == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Path imagePath = Paths.get(user.get().getAvatar());
+        byte[] imageData;
+        try {
+            imageData = Files.readAllBytes(imagePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.IMAGE_JPEG);
+
+            // Return image data as response
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(imageData);
+
     }
 }

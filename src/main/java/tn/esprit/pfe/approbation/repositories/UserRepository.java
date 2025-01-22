@@ -15,5 +15,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     String findLastMatricule();
     User findByMatricule(String matricule);
     Optional<User> findByEmail(String email);
+    boolean existsByEmail(String email);
 
 }

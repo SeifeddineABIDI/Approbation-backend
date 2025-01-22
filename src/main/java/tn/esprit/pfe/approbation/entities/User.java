@@ -37,6 +37,7 @@ public class User implements UserDetails {
     @JsonIgnore
     private String password;
 
+    private String avatar;
     private double soldeConge=20;
 
     private boolean isOnLeave=false;
@@ -44,12 +45,13 @@ public class User implements UserDetails {
     private Role role;
 
     @OneToMany(mappedBy = "user")
+    @JsonIgnore
     private List<Token> tokens;
 
     @ManyToOne
     @JoinColumn(name = "MANAGER_ID", referencedColumnName = "MATRICULE")
     @JsonProperty("manager")
-    @JsonIgnoreProperties({"password", "soldeConge", "onLeave", "manager"})
+    @JsonIgnoreProperties({"password", "soldeConge", "onLeave", "manager","leaveRequests"})
     private User manager;
 
     public void setSoldeConge(double soldeConge) {
@@ -69,7 +71,9 @@ public class User implements UserDetails {
     public void setOnLeave(boolean onLeave) {
         isOnLeave = onLeave;
     }
-
+    public String getAvatar() {
+        return avatar;
+    }
     @Override
     public String toString() {
         return "User{" +

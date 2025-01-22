@@ -1,5 +1,6 @@
 package tn.esprit.pfe.approbation.config;
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -47,6 +48,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         userEmail = jwtService.extractUsername(jwt);
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+            String requestIp = request.getRemoteAddr();
+            String requestAgent = request.getHeader("User-Agent");
+            if (requestAgent == null) {
+                requestAgent = "Unknown-agent";
+            }
+            String headerIp = request.getHeader("X-FORWARDED-FOR");
+            if (headerIp != null && !headerIp.isEmpty()) {
+                requestIp = headerIp;
+            }
+            if (headerIp != null && headerIp.contains(",")) {
+                headerIp = headerIp.split(",")[0];
+            }
+            Claims claims = jwtService.extractAllClaims(jwt);
+            String tokenIp = (String) claims.get("ip");
+            String tokenAgent = (String) claims.get("agent");
+
+            if (!requestIp.equals(tokenIp) || !requestAgent.equals(tokenAgent)) {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.getWriter().write("Unauthorized request: Invalid IP or User-Agent");
+                return;
+            }
             var isTokenValid = tokenRepository.findByToken(jwt)
                     .map(t -> !t.isExpired() && !t.isRevoked())
                     .orElse(false);

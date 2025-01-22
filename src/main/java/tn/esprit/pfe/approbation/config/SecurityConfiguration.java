@@ -36,23 +36,25 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @RequiredArgsConstructor
 @EnableMethodSecurity
 public class SecurityConfiguration {
+    @Bean
     public ResourceLoader resourceLoader() {
         return new DefaultResourceLoader();
     }
     private static final String[] WHITE_LIST_URL = {
-            "/**",
+            "/api/v1/auth/**",
             "/swagger-ui/**",
-            "/swagger-ui.html",
             "/v3/api-docs/**",
+            "/swagger-ui.html",
             "/webjars/**",
             "/v2/api-docs",
             "/v3/api-docs",
             "/swagger-resources",
             "/swagger-resources/**",
             "/configuration/ui",
-            "/api/v1/auth/**",
             "/configuration/security",
-        };
+            "/engine-rest/**",
+            "/camunda/app/**",
+    };
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
     private final LogoutHandler logoutHandler;
@@ -62,8 +64,7 @@ public class SecurityConfiguration {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req ->
-                        req.requestMatchers(WHITE_LIST_URL)
-                                .permitAll()
+                        req.requestMatchers(WHITE_LIST_URL).permitAll()
                                 .requestMatchers("/api/v1/management/**").hasAnyRole(ADMIN.name(), MANAGER.name())
                                 .requestMatchers(GET, "/api/v1/management/**").hasAnyAuthority(ADMIN_READ.name(), MANAGER_READ.name())
                                 .requestMatchers(POST, "/api/v1/management/**").hasAnyAuthority(ADMIN_CREATE.name(), MANAGER_CREATE.name())

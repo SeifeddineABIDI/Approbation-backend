@@ -10,6 +10,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import tn.esprit.pfe.approbation.config.JwtService;
+import tn.esprit.pfe.approbation.entities.Role;
 import tn.esprit.pfe.approbation.entities.User;
 import tn.esprit.pfe.approbation.repositories.UserRepository;
 import tn.esprit.pfe.approbation.services.GestionUserImpl;
@@ -28,18 +29,22 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private  final GestionUserImpl gestionUser;
-    public AuthenticationResponse register(RegisterRequest request) {
+    public AuthenticationResponse register(RegisterRequest request,
+                                           HttpServletRequest httpRequest) {
 
         var user = User.builder()
                 .firstName(request.getFirstname())
                 .lastName(request.getLastname())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole())
+                .role(Role.valueOf(request.getRole()))
                 .matricule(gestionUser.generateMatricule())
+                .avatar(request.getAvatar())
                 .build();
         var savedUser = repository.save(user);
-        var jwtToken = jwtService.generateToken(user);
+        String clientIp = httpRequest.getRemoteAddr();
+        String clientAgent = httpRequest.getHeader("User-Agent");
+        var jwtToken = jwtService.generateToken(user,clientIp,clientAgent);
         var refreshToken = jwtService.generateRefreshToken(user);
         saveUserToken(savedUser, jwtToken);
         return AuthenticationResponse.builder()
@@ -48,7 +53,8 @@ public class AuthenticationService {
                 .build();
     }
 
-    public AuthenticationResponse authenticate(AuthenticationRequest request) {
+    public AuthenticationResponse authenticate(AuthenticationRequest request,
+                                               HttpServletRequest httpRequest) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
@@ -57,11 +63,14 @@ public class AuthenticationService {
         );
         var user = repository.findByEmail(request.getEmail())
                 .orElseThrow();
-        var jwtToken = jwtService.generateToken(user);
+        String clientIp = httpRequest.getRemoteAddr();
+        String clientAgent = httpRequest.getHeader("User-Agent");
+        var jwtToken = jwtService.generateToken(user,clientIp,clientAgent);
         var refreshToken = jwtService.generateRefreshToken(user);
         revokeAllUserTokens(user);
         saveUserToken(user, jwtToken);
         return AuthenticationResponse.builder()
+                .user(user)
                 .accessToken(jwtToken)
                 .refreshToken(refreshToken)
                 .build();
@@ -105,7 +114,9 @@ public class AuthenticationService {
             var user = this.repository.findByEmail(userEmail)
                     .orElseThrow();
             if (jwtService.isTokenValid(refreshToken, user)) {
-                var accessToken = jwtService.generateToken(user);
+                String clientIp = request.getRemoteAddr();
+                String clientAgent = request.getHeader("User-Agent");
+                var accessToken = jwtService.generateToken(user,clientIp,clientAgent);
                 revokeAllUserTokens(user);
                 saveUserToken(user, accessToken);
                 var authResponse = AuthenticationResponse.builder()

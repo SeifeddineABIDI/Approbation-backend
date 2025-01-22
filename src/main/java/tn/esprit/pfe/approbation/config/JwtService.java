@@ -34,8 +34,13 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
-    public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+    public String generateToken(UserDetails userDetails,
+                                String ipAddress,
+                                String userAgent) {
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("ip", ipAddress != null ? ipAddress : "unknown-ip");
+        extraClaims.put("agent", userAgent != null ? userAgent : "unknown-agent");
+        return generateToken(extraClaims, userDetails);
     }
 
     public String generateToken(
@@ -79,7 +84,7 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    private Claims extractAllClaims(String token) {
+    public Claims extractAllClaims(String token) {
         return Jwts
                 .parserBuilder()
                 .setSigningKey(getSignInKey())
