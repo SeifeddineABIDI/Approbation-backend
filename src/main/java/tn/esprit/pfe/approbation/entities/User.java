@@ -44,7 +44,7 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Token> tokens;
 
@@ -62,7 +62,9 @@ public class User implements UserDetails {
         return manager;
     }
 
-    public void setManager(User manager) {}
+    public void setManager(User manager) {
+        this.manager = manager;
+    }
 
     public boolean isOnLeave() {
         return isOnLeave;

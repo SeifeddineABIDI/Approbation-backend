@@ -13,7 +13,7 @@ public class UserDto {
     private String role;
     private double soldeConge;
     private String managerMatricule;
-
+    private String avatar;
     // Converts User to UserDto
     public static UserDto fromEntity(User user) {
         UserDto dto = new UserDto();
@@ -26,6 +26,9 @@ public class UserDto {
         dto.setSoldeConge(user.getSoldeConge());
         if (user.getManager() != null) {
             dto.setManagerMatricule(user.getManager().getMatricule());
+        }
+        if (user.getAvatar() != null) {
+            dto.setAvatar(user.getAvatar());
         }
         return dto;
     }

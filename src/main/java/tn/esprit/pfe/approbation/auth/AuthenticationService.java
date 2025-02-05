@@ -1,6 +1,7 @@
 package tn.esprit.pfe.approbation.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,8 @@ public class AuthenticationService {
                 .role(Role.valueOf(request.getRole()))
                 .matricule(gestionUser.generateMatricule())
                 .avatar(request.getAvatar())
+                .manager(request.getManager())
+                .soldeConge(20)
                 .build();
         var savedUser = repository.save(user);
         String clientIp = httpRequest.getRemoteAddr();
@@ -98,33 +101,48 @@ public class AuthenticationService {
         tokenRepository.saveAll(validUserTokens);
     }
 
-    public void refreshToken(
-            HttpServletRequest request,
-            HttpServletResponse response
-    ) throws IOException {
-        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        final String refreshToken;
-        final String userEmail;
-        if (authHeader == null ||!authHeader.startsWith("Bearer ")) {
+    public void refreshToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        Cookie[] cookies = request.getCookies();
+        String refreshToken = null;
+
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("refreshToken".equals(cookie.getName())) {
+                    refreshToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (refreshToken == null) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Refresh token is missing.");
             return;
         }
-        refreshToken = authHeader.substring(7);
-        userEmail = jwtService.extractUsername(refreshToken);
+
+        String userEmail = jwtService.extractUsername(refreshToken);
         if (userEmail != null) {
-            var user = this.repository.findByEmail(userEmail)
-                    .orElseThrow();
+            var user = repository.findByEmail(userEmail).orElseThrow();
+
             if (jwtService.isTokenValid(refreshToken, user)) {
                 String clientIp = request.getRemoteAddr();
                 String clientAgent = request.getHeader("User-Agent");
-                var accessToken = jwtService.generateToken(user,clientIp,clientAgent);
+                var accessToken = jwtService.generateToken(user, clientIp, clientAgent);
                 revokeAllUserTokens(user);
                 saveUserToken(user, accessToken);
+
                 var authResponse = AuthenticationResponse.builder()
                         .accessToken(accessToken)
                         .refreshToken(refreshToken)
                         .build();
+
+                response.setContentType("application/json");
                 new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
+            } else {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Invalid refresh token.");
             }
         }
     }
+
 }

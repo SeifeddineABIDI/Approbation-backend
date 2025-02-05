@@ -41,6 +41,7 @@ public class SecurityConfiguration {
         return new DefaultResourceLoader();
     }
     private static final String[] WHITE_LIST_URL = {
+            "/images/**",
             "/api/v1/auth/**",
             "/swagger-ui/**",
             "/v3/api-docs/**",
@@ -62,6 +63,8 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors()
+                .and()
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req ->
                         req.requestMatchers(WHITE_LIST_URL).permitAll()

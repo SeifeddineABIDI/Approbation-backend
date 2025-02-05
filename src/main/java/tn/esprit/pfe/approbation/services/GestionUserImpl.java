@@ -1,15 +1,33 @@
 package tn.esprit.pfe.approbation.services;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+import tn.esprit.pfe.approbation.dtos.ManagerDto;
+import tn.esprit.pfe.approbation.dtos.UserDto;
+import tn.esprit.pfe.approbation.entities.Role;
 import tn.esprit.pfe.approbation.entities.User;
+import tn.esprit.pfe.approbation.entities.UserSpecification;
 import tn.esprit.pfe.approbation.repositories.UserRepository;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tn.esprit.pfe.approbation.token.Token;
+import tn.esprit.pfe.approbation.token.TokenRepository;
+
 import java.time.Year;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class GestionUserImpl implements IGestionUser {
@@ -18,6 +36,8 @@ public class GestionUserImpl implements IGestionUser {
     UserRepository userRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(GestionUserImpl.class);
+    @Autowired
+    private TokenRepository tokenRepository;
 
 
     @Override
@@ -70,4 +90,134 @@ public class GestionUserImpl implements IGestionUser {
 
         return generatedMatricule;
     }
+    public List<ManagerDto> getManagers() {
+        return userRepository.findAll().stream()
+                .filter(user -> user.getRole() == Role.MANAGER) // Check for Role.MANAGER
+                .map(user -> new ManagerDto(
+                        user.getFirstName() + " " + user.getLastName(),
+                        user.getMatricule()
+                ))
+                .collect(Collectors.toList());
+    }
+    public List<UserDto> searchUsers(String firstName, String lastName, String email, String matricule) {
+        List<User> users = userRepository.searchUsers(firstName, lastName, email, matricule);
+        return users.stream()
+                .map(UserDto::fromEntity) // Convert each User entity to UserDto
+                .collect(Collectors.toList());
+    }
+    public UserDto updateUser(Integer userId, UserDto userDto, MultipartFile imageFile) {
+        // Find the existing user by ID
+        System.out.println("=== Update User Debug ===");
+        System.out.println("Updating user ID: " + userId);
+        System.out.println("Received DTO data:");
+        System.out.println("Manager Matricule: " + userDto.getManagerMatricule());
+        User user = userRepository.findUserById(userId);
+
+        // Update the user details if provided
+        if (userDto.getFirstName() != null && !userDto.getFirstName().isEmpty()) {user.setFirstName(userDto.getFirstName());}
+
+        if (user.getLastName() != null && !user.getLastName().isEmpty()) {
+            user.setLastName(userDto.getLastName());
+        }
+        if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+            user.setEmail(userDto.getEmail());
+        }
+        if (userDto.getMatricule() != null && !userDto.getMatricule().isEmpty()) {
+            user.setMatricule(userDto.getMatricule());
+        }
+        if (userDto.getRole() != null && !userDto.getRole().isEmpty()) {
+            try {
+                user.setRole(Role.valueOf(userDto.getRole()));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid role: " + userDto.getRole());
+            }
+        }
+        if (userDto.getManagerMatricule() != null && !userDto.getManagerMatricule().isEmpty()) {
+            System.out.println("Looking up manager with matricule: " + userDto.getManagerMatricule());
+            User manager = userRepository.findByMatricule(userDto.getManagerMatricule());
+
+            if (manager == null) {
+                System.out.println("ERROR: Manager not found with matricule: " + userDto.getManagerMatricule());
+            }
+
+            System.out.println("Found manager: " + manager);
+            user.setManager(manager);
+            System.out.println("Manager set on user object: " + user.getManager());
+        } else {
+            System.out.println("No manager matricule provided in the update request");
+        }
+
+        if (imageFile != null && !imageFile.isEmpty()) {
+            String imagePath = saveImage(imageFile); // Save image and get path
+            user.setAvatar(imagePath);
+        }else {
+            System.out.println("No avatar provided, skipping update for avatar.");
+        }
+        user.setSoldeConge(userDto.getSoldeConge());
+        System.out.println("user: " + user);
+        User updatedUser = userRepository.save(user);
+
+        // Return the updated user as a DTO
+        return UserDto.fromEntity(updatedUser);
+    }
+    private static final Logger log = LoggerFactory.getLogger(GestionUserImpl.class);
+    @Override
+    public void deleteUser(Integer userId) {
+        try {
+            log.info("Deleting user: {}", userId);
+            userRepository.deleteUserById(userId);
+        } catch (EntityNotFoundException e) {
+            log.error("User not found: {}", userId);
+            throw e; // Re-throw to be handled by the controller
+        } catch (Exception e) {
+            log.error("Error deleting user {}: {}", userId, e.getMessage(), e);
+            throw new RuntimeException("Error deleting user", e);
+        }
+    }
+
+    private String saveImage(MultipartFile imageFile) {
+        try {
+            // Get the path to the resources/static directory
+            String uploadDir = "src/main/resources/static/images";
+
+            // Create the directory if it doesn't exist
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            // Get the original filename of the uploaded file
+            String originalFileName = StringUtils.cleanPath(imageFile.getOriginalFilename());
+
+            // Generate a unique identifier
+            String uniqueId = UUID.randomUUID().toString().replace("-", "");
+
+            // Extract file extension
+            String fileExtension = originalFileName.substring(originalFileName.lastIndexOf('.'));
+
+            // Append unique identifier to the filename
+            String modifiedFileName = uniqueId + "_" + originalFileName;
+
+            // Get the path to save the image
+            Path filePath = uploadPath.resolve(modifiedFileName);
+
+            // Check if the file with the modified name already exists
+            int count = 1;
+            while (Files.exists(filePath)) {
+                modifiedFileName = uniqueId + "_" + count + "_" + originalFileName;
+                filePath = uploadPath.resolve(modifiedFileName);
+                count++;
+            }
+
+            // Save the image to the specified path
+            Files.copy(imageFile.getInputStream(), filePath);
+
+            // Return the path where the image is saved
+            return filePath.toString();
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to save image", ex);
+        }
+    }
+
+
 }

@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.web.multipart.MultipartFile;
 import tn.esprit.pfe.approbation.entities.Role;
+import tn.esprit.pfe.approbation.entities.User;
 
 @Data
 @Builder
@@ -19,4 +20,5 @@ public class RegisterRequest {
     private String password;
     private String role;
     private String avatar;
+    private User manager;
 }
