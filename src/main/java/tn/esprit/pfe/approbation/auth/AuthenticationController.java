@@ -28,7 +28,7 @@ import java.time.ZoneOffset;
 import java.util.*;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*", allowCredentials = "true")
+@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*", allowCredentials = "true", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthenticationController {
@@ -70,7 +70,6 @@ public class AuthenticationController {
                 .manager(manager)
                 .build();
         AuthenticationResponse response = service.register(request,httpRequest);
-
         return ResponseEntity.ok(response);
     }
     @PostMapping("/authenticate")
@@ -91,42 +90,22 @@ public class AuthenticationController {
 
     private String saveImage(MultipartFile imageFile) {
         try {
-            // Get the path to the resources/static directory
             String uploadDir = "src/main/resources/static/images";
-
-            // Create the directory if it doesn't exist
             Path uploadPath = Paths.get(uploadDir);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
-
-            // Get the original filename of the uploaded file
             String originalFileName = StringUtils.cleanPath(imageFile.getOriginalFilename());
-
-            // Generate a unique identifier
             String uniqueId = UUID.randomUUID().toString().replace("-", "");
-
-            // Extract file extension
-            String fileExtension = originalFileName.substring(originalFileName.lastIndexOf('.'));
-
-            // Append unique identifier to the filename
             String modifiedFileName = uniqueId + "_" + originalFileName;
-
-            // Get the path to save the image
             Path filePath = uploadPath.resolve(modifiedFileName);
-
-            // Check if the file with the modified name already exists
             int count = 1;
             while (Files.exists(filePath)) {
                 modifiedFileName = uniqueId + "_" + count + "_" + originalFileName;
                 filePath = uploadPath.resolve(modifiedFileName);
                 count++;
             }
-
-            // Save the image to the specified path
             Files.copy(imageFile.getInputStream(), filePath);
-
-            // Return the path where the image is saved
             return filePath.toString();
         } catch (IOException ex) {
             throw new RuntimeException("Failed to save image", ex);
@@ -141,6 +120,7 @@ public class AuthenticationController {
         }
         return clientIp;
     }
+
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@RequestBody Map<String, String> request) throws MessagingException {
         String email = request.get("email");
@@ -164,6 +144,7 @@ public class AuthenticationController {
 
         return ResponseEntity.ok("Password reset link sent!");
     }
+
     @GetMapping("/validate-reset-token")
     public ResponseEntity<?> validateResetToken(@RequestParam String token) {
         Optional<PasswordReset> resetToken = passwordResetRepository.findByToken(token);
@@ -174,21 +155,18 @@ public class AuthenticationController {
 
         return ResponseEntity.ok().body("Valid token");
     }
+
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
         PasswordReset tokenEntity = passwordResetRepository.findByToken(request.getToken())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or expired token"));
-
         User user = tokenEntity.getUser();
         if (!user.getEmail().equals(request.getEmail())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Collections.singletonMap("error", "Email does not match the token's user."));        }
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
-
         passwordResetRepository.delete(tokenEntity);
-
         return ResponseEntity.ok(Collections.singletonMap("message", "Password has been reset successfully."));
     }
-
 }

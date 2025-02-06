@@ -41,8 +41,6 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
-
-
     @PostMapping("/request")
     public ResponseEntity<String> requestLeave(@RequestBody LeaveRequestDto request) {
         String response = leaveService.handleLeaveRequest(request);
@@ -78,12 +76,9 @@ public class UserController {
         }
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.IMAGE_JPEG);
-
-            // Return image data as response
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(imageData);
-
     }
     @PostMapping("/{userId}/image")
     public ResponseEntity<String> uploadUserImage(@PathVariable Integer userId, @RequestParam("avatar") MultipartFile file) {
@@ -91,59 +86,35 @@ public class UserController {
         if (!optionalUser.isPresent()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         }
-
         User user = optionalUser.get();
         try {
-            // Save the image and get its path
             String imagePath = saveImage(file);
-
-            // Update user avatar path in database
             user.setAvatar(imagePath);
             userRepository.save(user);
-
-            return ResponseEntity.ok(imagePath); // Return the new image path
+            return ResponseEntity.ok(imagePath);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error uploading image");
         }
     }
     private String saveImage(MultipartFile imageFile) {
         try {
-            // Get the path to the resources/static directory
             String uploadDir = "src/main/resources/static/images";
-
-            // Create the directory if it doesn't exist
             Path uploadPath = Paths.get(uploadDir);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
-
-            // Get the original filename of the uploaded file
             String originalFileName = StringUtils.cleanPath(imageFile.getOriginalFilename());
-
-            // Generate a unique identifier
             String uniqueId = UUID.randomUUID().toString().replace("-", "");
-
-            // Extract file extension
             String fileExtension = originalFileName.substring(originalFileName.lastIndexOf('.'));
-
-            // Append unique identifier to the filename
             String modifiedFileName = uniqueId + "_" + originalFileName;
-
-            // Get the path to save the image
             Path filePath = uploadPath.resolve(modifiedFileName);
-
-            // Check if the file with the modified name already exists
             int count = 1;
             while (Files.exists(filePath)) {
                 modifiedFileName = uniqueId + "_" + count + "_" + originalFileName;
                 filePath = uploadPath.resolve(modifiedFileName);
                 count++;
             }
-
-            // Save the image to the specified path
             Files.copy(imageFile.getInputStream(), filePath);
-
-            // Return the path where the image is saved
             return filePath.toString();
         } catch (IOException ex) {
             throw new RuntimeException("Failed to save image", ex);

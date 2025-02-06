@@ -33,6 +33,7 @@ public class TaskController {
     private RuntimeService runtimeService;
     @Autowired
     private UpdateConge updateConge;
+    private static final Logger logger = LoggerFactory.getLogger(TaskController.class);
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<TaskDTO>> getTasksByUser(@PathVariable String userId) {
@@ -63,10 +64,6 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-
-
-
-    private static final Logger logger = LoggerFactory.getLogger(TaskController.class);
 
     @PostMapping("/confirm/manager/{taskId}")
     public ResponseEntity<String> confirmManagerTask1(@PathVariable("taskId") UUID taskId, @Valid  @RequestBody TaskConfirmationDTO confirmationDto) {

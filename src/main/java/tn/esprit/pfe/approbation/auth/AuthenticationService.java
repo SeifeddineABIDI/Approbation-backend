@@ -5,7 +5,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,7 +31,6 @@ public class AuthenticationService {
     private  final GestionUserImpl gestionUser;
     public AuthenticationResponse register(RegisterRequest request,
                                            HttpServletRequest httpRequest) {
-
         var user = User.builder()
                 .firstName(request.getFirstname())
                 .lastName(request.getLastname())
@@ -104,7 +102,6 @@ public class AuthenticationService {
     public void refreshToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
         Cookie[] cookies = request.getCookies();
         String refreshToken = null;
-
         if (cookies != null) {
             for (Cookie cookie : cookies) {
                 if ("refreshToken".equals(cookie.getName())) {
@@ -119,23 +116,19 @@ public class AuthenticationService {
             response.getWriter().write("Refresh token is missing.");
             return;
         }
-
         String userEmail = jwtService.extractUsername(refreshToken);
         if (userEmail != null) {
             var user = repository.findByEmail(userEmail).orElseThrow();
-
             if (jwtService.isTokenValid(refreshToken, user)) {
                 String clientIp = request.getRemoteAddr();
                 String clientAgent = request.getHeader("User-Agent");
                 var accessToken = jwtService.generateToken(user, clientIp, clientAgent);
                 revokeAllUserTokens(user);
                 saveUserToken(user, accessToken);
-
                 var authResponse = AuthenticationResponse.builder()
                         .accessToken(accessToken)
                         .refreshToken(refreshToken)
                         .build();
-
                 response.setContentType("application/json");
                 new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
             } else {

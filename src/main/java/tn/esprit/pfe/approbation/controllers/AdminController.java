@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import tn.esprit.pfe.approbation.dtos.ManagerDto;
 import tn.esprit.pfe.approbation.dtos.UserDto;
+import tn.esprit.pfe.approbation.entities.LeaveRequest;
 import tn.esprit.pfe.approbation.entities.User;
+import tn.esprit.pfe.approbation.repositories.LeaveRequestRepository;
 import tn.esprit.pfe.approbation.repositories.UserRepository;
 import tn.esprit.pfe.approbation.services.IGestionUser;
 
@@ -28,7 +30,9 @@ public class AdminController {
     IGestionUser gestionUser;
     @Autowired
     private UserRepository userRepository;
-
+    @Autowired
+    private LeaveRequestRepository leaveRequestRepository;
+    private static final Logger log = LoggerFactory.getLogger(AdminController.class);
     @GetMapping("/all")
     @PreAuthorize("hasAuthority('admin:read')")
     public ResponseEntity<List<UserDto>> getUsers() {
@@ -57,7 +61,6 @@ public class AdminController {
             if (user != null) {
                 return UserDto.fromEntity(user);
             } else {
-                // Handle case when user is not found (optional, depending on your use case)
                 throw new RuntimeException("User not found");
             }
         } catch (Exception e) {
@@ -78,7 +81,6 @@ public class AdminController {
     }
     @Transactional
     @PutMapping("/update/{userId}")
-    @CrossOrigin(origins = "http://localhost:4200") // Allow Angular frontend
     @PreAuthorize("hasAuthority('admin:update')")
     public ResponseEntity<UserDto> updateUser(
             @PathVariable Integer userId,
@@ -89,10 +91,9 @@ public class AdminController {
         UserDto updatedUser = gestionUser.updateUser(userId, userDto, imageFile);
         return ResponseEntity.ok(updatedUser);
     }
-    private static final Logger log = LoggerFactory.getLogger(AdminController.class);
     @Transactional
     @DeleteMapping("/delete/{userId}")
-    @CrossOrigin(origins = "http://localhost:4200") // Allow Angular frontend
+    @CrossOrigin(origins = "http://localhost:4200")
     public ResponseEntity<Void> deleteUser(@PathVariable Integer userId) {
         try {
             gestionUser.deleteUser(userId);
@@ -105,22 +106,8 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-    @PostMapping
-    @PreAuthorize("hasAuthority('admin:create')")
-    @Hidden
-    public String post() {
-        return "POST:: admin controller";
-    }
-    @PutMapping
-    @PreAuthorize("hasAuthority('admin:update')")
-    @Hidden
-    public String put() {
-        return "PUT:: admin controller";
-    }
-    @DeleteMapping
-    @PreAuthorize("hasAuthority('admin:delete')")
-    @Hidden
-    public String delete() {
-        return "DELETE:: admin controller";
+    @GetMapping("/request/all")
+    public ResponseEntity<List<LeaveRequest>> getRequests() {
+        return ResponseEntity.ok(leaveRequestRepository.findAll());
     }
 }

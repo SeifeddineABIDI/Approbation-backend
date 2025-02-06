@@ -14,8 +14,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
-import static tn.esprit.pfe.approbation.entities.Role.ADMIN;
-import static tn.esprit.pfe.approbation.entities.Role.MANAGER;
+import org.springframework.web.cors.CorsConfiguration;
+
+import java.util.List;
+
 import static tn.esprit.pfe.approbation.entities.Permission.ADMIN_CREATE;
 import static tn.esprit.pfe.approbation.entities.Permission.ADMIN_DELETE;
 import static tn.esprit.pfe.approbation.entities.Permission.ADMIN_READ;
@@ -29,6 +31,7 @@ import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
+import static tn.esprit.pfe.approbation.entities.Role.*;
 
 
 @Configuration
@@ -41,6 +44,9 @@ public class SecurityConfiguration {
         return new DefaultResourceLoader();
     }
     private static final String[] WHITE_LIST_URL = {
+            "/**",
+            "/camunda/**",
+            "/engine-rest/**",
             "/images/**",
             "/api/v1/auth/**",
             "/swagger-ui/**",
@@ -53,8 +59,6 @@ public class SecurityConfiguration {
             "/swagger-resources/**",
             "/configuration/ui",
             "/configuration/security",
-            "/engine-rest/**",
-            "/camunda/app/**",
     };
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
@@ -63,13 +67,21 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors()
-                .and()
+
+                .cors(cors -> cors.configurationSource(request -> {
+                    CorsConfiguration config = new CorsConfiguration();
+                    config.setAllowedOrigins(List.of("http://localhost:4200")); // Allow Angular frontend
+                    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    config.setAllowedHeaders(List.of("*"));
+                    config.setAllowCredentials(true);
+                    return config;
+                }))
+
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req ->
                         req.requestMatchers(WHITE_LIST_URL).permitAll()
                                 .requestMatchers("/api/v1/management/**").hasAnyRole(ADMIN.name(), MANAGER.name())
-                                .requestMatchers(GET, "/api/v1/management/**").hasAnyAuthority(ADMIN_READ.name(), MANAGER_READ.name())
+                                .requestMatchers(GET, "/api/v1/management/**").hasAnyAuthority(ADMIN_READ.name(), MANAGER_READ.name(), RH.name())
                                 .requestMatchers(POST, "/api/v1/management/**").hasAnyAuthority(ADMIN_CREATE.name(), MANAGER_CREATE.name())
                                 .requestMatchers(PUT, "/api/v1/management/**").hasAnyAuthority(ADMIN_UPDATE.name(), MANAGER_UPDATE.name())
                                 .requestMatchers(DELETE, "/api/v1/management/**").hasAnyAuthority(ADMIN_DELETE.name(), MANAGER_DELETE.name())
@@ -88,4 +100,5 @@ public class SecurityConfiguration {
 
         return http.build();
     }
+
 }

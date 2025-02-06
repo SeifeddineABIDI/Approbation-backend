@@ -28,4 +28,5 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
     List<LeaveRequest> findOverlappingLeaveRequests(@Param("userId") String matricule,
                                                     @Param("startDate") LocalDate startDate,
                                                     @Param("endDate") LocalDate endDate);
+    List<LeaveRequest> findAll();
 }

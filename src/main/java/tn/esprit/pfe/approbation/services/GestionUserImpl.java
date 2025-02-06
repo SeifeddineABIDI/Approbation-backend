@@ -34,11 +34,9 @@ public class GestionUserImpl implements IGestionUser {
 
     @Autowired
     UserRepository userRepository;
-
     private static final Logger logger = LoggerFactory.getLogger(GestionUserImpl.class);
     @Autowired
     private TokenRepository tokenRepository;
-
 
     @Override
     public List<User> findAll() {
@@ -52,6 +50,7 @@ public class GestionUserImpl implements IGestionUser {
         }
         return userRepository.save(user);
         }
+
     public String generateMatricule() {
         int currentYearShort = Year.now().getValue() % 100;
         int currentMonth = LocalDate.now().getMonthValue();
@@ -90,32 +89,31 @@ public class GestionUserImpl implements IGestionUser {
 
         return generatedMatricule;
     }
+
     public List<ManagerDto> getManagers() {
         return userRepository.findAll().stream()
-                .filter(user -> user.getRole() == Role.MANAGER) // Check for Role.MANAGER
+                .filter(user -> user.getRole() == Role.MANAGER)
                 .map(user -> new ManagerDto(
                         user.getFirstName() + " " + user.getLastName(),
                         user.getMatricule()
                 ))
                 .collect(Collectors.toList());
     }
+
     public List<UserDto> searchUsers(String firstName, String lastName, String email, String matricule) {
         List<User> users = userRepository.searchUsers(firstName, lastName, email, matricule);
         return users.stream()
-                .map(UserDto::fromEntity) // Convert each User entity to UserDto
+                .map(UserDto::fromEntity)
                 .collect(Collectors.toList());
     }
+
     public UserDto updateUser(Integer userId, UserDto userDto, MultipartFile imageFile) {
-        // Find the existing user by ID
         System.out.println("=== Update User Debug ===");
         System.out.println("Updating user ID: " + userId);
         System.out.println("Received DTO data:");
         System.out.println("Manager Matricule: " + userDto.getManagerMatricule());
         User user = userRepository.findUserById(userId);
-
-        // Update the user details if provided
         if (userDto.getFirstName() != null && !userDto.getFirstName().isEmpty()) {user.setFirstName(userDto.getFirstName());}
-
         if (user.getLastName() != null && !user.getLastName().isEmpty()) {
             user.setLastName(userDto.getLastName());
         }
@@ -135,20 +133,17 @@ public class GestionUserImpl implements IGestionUser {
         if (userDto.getManagerMatricule() != null && !userDto.getManagerMatricule().isEmpty()) {
             System.out.println("Looking up manager with matricule: " + userDto.getManagerMatricule());
             User manager = userRepository.findByMatricule(userDto.getManagerMatricule());
-
             if (manager == null) {
                 System.out.println("ERROR: Manager not found with matricule: " + userDto.getManagerMatricule());
             }
-
             System.out.println("Found manager: " + manager);
             user.setManager(manager);
             System.out.println("Manager set on user object: " + user.getManager());
         } else {
             System.out.println("No manager matricule provided in the update request");
         }
-
         if (imageFile != null && !imageFile.isEmpty()) {
-            String imagePath = saveImage(imageFile); // Save image and get path
+            String imagePath = saveImage(imageFile);
             user.setAvatar(imagePath);
         }else {
             System.out.println("No avatar provided, skipping update for avatar.");
@@ -156,8 +151,6 @@ public class GestionUserImpl implements IGestionUser {
         user.setSoldeConge(userDto.getSoldeConge());
         System.out.println("user: " + user);
         User updatedUser = userRepository.save(user);
-
-        // Return the updated user as a DTO
         return UserDto.fromEntity(updatedUser);
     }
     private static final Logger log = LoggerFactory.getLogger(GestionUserImpl.class);
@@ -168,7 +161,7 @@ public class GestionUserImpl implements IGestionUser {
             userRepository.deleteUserById(userId);
         } catch (EntityNotFoundException e) {
             log.error("User not found: {}", userId);
-            throw e; // Re-throw to be handled by the controller
+            throw e;
         } catch (Exception e) {
             log.error("Error deleting user {}: {}", userId, e.getMessage(), e);
             throw new RuntimeException("Error deleting user", e);
@@ -177,47 +170,26 @@ public class GestionUserImpl implements IGestionUser {
 
     private String saveImage(MultipartFile imageFile) {
         try {
-            // Get the path to the resources/static directory
             String uploadDir = "src/main/resources/static/images";
-
-            // Create the directory if it doesn't exist
             Path uploadPath = Paths.get(uploadDir);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
-
-            // Get the original filename of the uploaded file
             String originalFileName = StringUtils.cleanPath(imageFile.getOriginalFilename());
-
-            // Generate a unique identifier
             String uniqueId = UUID.randomUUID().toString().replace("-", "");
-
-            // Extract file extension
             String fileExtension = originalFileName.substring(originalFileName.lastIndexOf('.'));
-
-            // Append unique identifier to the filename
             String modifiedFileName = uniqueId + "_" + originalFileName;
-
-            // Get the path to save the image
             Path filePath = uploadPath.resolve(modifiedFileName);
-
-            // Check if the file with the modified name already exists
             int count = 1;
             while (Files.exists(filePath)) {
                 modifiedFileName = uniqueId + "_" + count + "_" + originalFileName;
                 filePath = uploadPath.resolve(modifiedFileName);
                 count++;
             }
-
-            // Save the image to the specified path
             Files.copy(imageFile.getInputStream(), filePath);
-
-            // Return the path where the image is saved
             return filePath.toString();
-        } catch (IOException ex) {
+        }   catch (IOException ex) {
             throw new RuntimeException("Failed to save image", ex);
-        }
+            }
     }
-
-
 }

@@ -46,6 +46,7 @@ public class UpdateConge implements JavaDelegate {
         execution.setVariable("leaveApproved", leaveApproved);
 
     }
+    
     public void sendEmail(String to, String userName, String status, String message) throws MessagingException {
         Context context = new Context();
         context.setVariable("userName", userName);

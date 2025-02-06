@@ -41,8 +41,15 @@ public enum Role {
                     MANAGER_DELETE,
                     MANAGER_CREATE
             )
+    ),
+    RH(
+            Set.of(
+                    MANAGER_READ,
+                    MANAGER_UPDATE,
+                    MANAGER_DELETE,
+                    MANAGER_CREATE
+            )
     )
-
     ;
 
     @Getter

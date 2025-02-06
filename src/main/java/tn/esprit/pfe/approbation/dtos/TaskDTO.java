@@ -1,7 +1,10 @@
 package tn.esprit.pfe.approbation.dtos;
 
+import lombok.Data;
+
 import java.time.LocalDate;
 
+@Data
 public class TaskDTO {
 
     private String taskId;
@@ -23,7 +26,6 @@ public class TaskDTO {
         this.endDate = endDate;
     }
 
-    // Getters and Setters
     public String getTaskId() {
         return taskId;
     }
@@ -32,11 +34,14 @@ public class TaskDTO {
     public String getTaskName() {
         return taskName;
     }
-    public void setTaskName(String taskName) {}
+    public void setTaskName(String taskName) {
+        this.taskName = taskName;
+    }
 
     public String getProcessInstanceId() {
         return processInstanceId;}
     public void setProcessInstanceId(String processInstanceId) {}
+
     public String getAssignee() {
         return assignee;
     }

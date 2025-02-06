@@ -14,7 +14,7 @@ public class UserDto {
     private double soldeConge;
     private String managerMatricule;
     private String avatar;
-    // Converts User to UserDto
+
     public static UserDto fromEntity(User user) {
         UserDto dto = new UserDto();
         dto.setId(user.getId());
