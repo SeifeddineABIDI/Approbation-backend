@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.*;
 import tn.esprit.pfe.approbation.dtos.TaskConfirmationDTO;
 import tn.esprit.pfe.approbation.dtos.TaskDTO;
 import tn.esprit.pfe.approbation.delegate.UpdateConge;
+import tn.esprit.pfe.approbation.dtos.UserDto;
+import tn.esprit.pfe.approbation.entities.User;
+import tn.esprit.pfe.approbation.repositories.UserRepository;
 import tn.esprit.pfe.approbation.services.LeaveService;
 import java.time.LocalDate;
 import java.util.List;
@@ -22,6 +25,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*", allowCredentials = "true", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
 @RequestMapping("/tasks")
 public class TaskController {
 
@@ -34,6 +38,8 @@ public class TaskController {
     @Autowired
     private UpdateConge updateConge;
     private static final Logger logger = LoggerFactory.getLogger(TaskController.class);
+    @Autowired
+    private UserRepository userRepository;
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<TaskDTO>> getTasksByUser(@PathVariable String userId) {
@@ -54,8 +60,10 @@ public class TaskController {
                                 task.getAssignee(),
                                 requester,
                                 startDate,
-                                endDate
-                        );
+                                endDate,
+                                task.getCreateTime()
+
+                                );
                     })
                     .collect(Collectors.toList());
             return ResponseEntity.ok(taskDTOs);
@@ -88,6 +96,19 @@ public class TaskController {
         } catch (Exception e) {
             logger.error("Error completing RH task", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error completing task: " + e.getMessage());
+        }
+    }
+    @GetMapping("/getUserByMat/{matricule}")
+    public UserDto getUserByMatricule(@PathVariable String matricule) {
+        try {
+            User user = userRepository.findByMatricule(matricule);
+            if (user != null) {
+                return UserDto.fromEntity(user);
+            } else {
+                throw new RuntimeException("User not found");
+            }
+        } catch (Exception e) {
+            return null;
         }
     }
 }

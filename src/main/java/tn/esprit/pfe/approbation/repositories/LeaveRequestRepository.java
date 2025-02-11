@@ -1,6 +1,8 @@
 package tn.esprit.pfe.approbation.repositories;
 
 import org.apache.ibatis.annotations.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -29,4 +31,16 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
                                                     @Param("startDate") LocalDate startDate,
                                                     @Param("endDate") LocalDate endDate);
     List<LeaveRequest> findAll();
+    @Query("SELECT l FROM LeaveRequest l WHERE " +
+            "LOWER(CAST(l.requestDate AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(CAST(l.startDate AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(CAST(l.endDate AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(CAST(l.managerApproved AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(l.managerComments) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(CAST(l.managerApprovalDate AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(CAST(l.rhApproved AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(l.rhComments) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(CAST(l.rhApprovalDate AS string)) LIKE LOWER(CONCAT('%', :query, '%'))")
+    Page<LeaveRequest> searchRequests(@Param("query") String query, Pageable pageable);
+
 }

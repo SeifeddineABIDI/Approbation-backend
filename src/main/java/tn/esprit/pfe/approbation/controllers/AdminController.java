@@ -6,6 +6,10 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -107,7 +111,24 @@ public class AdminController {
         }
     }
     @GetMapping("/request/all")
-    public ResponseEntity<List<LeaveRequest>> getRequests() {
-        return ResponseEntity.ok(leaveRequestRepository.findAll());
+    public ResponseEntity<Page<LeaveRequest>> getRequests(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String sortField, // Add sortField parameter
+            @RequestParam(required = false) String sortDirection, // Add sortDirection parameter
+            Pageable pageable) {
+
+        // Apply sorting if sortField and sortDirection are provided
+        if (sortField != null && sortDirection != null) {
+            Sort.Direction direction = Sort.Direction.fromString(sortDirection);
+            pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(direction, sortField));
+        }
+
+        if (query != null && !query.isEmpty()) {
+            return ResponseEntity.ok(leaveRequestRepository.searchRequests(query, pageable));
+        }
+
+        return ResponseEntity.ok(leaveRequestRepository.findAll(pageable));
     }
+
+
 }

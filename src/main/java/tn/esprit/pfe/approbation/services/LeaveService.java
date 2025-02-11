@@ -54,7 +54,6 @@ public class LeaveService {
         if (user == null) {
             throw new IllegalArgumentException("User not found");
         }
-
         User manager = user.getManager();
         if (manager == null) {
             return "User does not have a manager assigned.";
@@ -64,7 +63,6 @@ public class LeaveService {
                 request.getStartDate(),
                 request.getEndDate()
         );
-
         if (!overlappingRequests.isEmpty()) {
             return "There is already a leave request that overlaps with this period.";
         }
@@ -97,14 +95,14 @@ public class LeaveService {
                 taskService.setAssignee(task.getId(), manager.getMatricule());
                 try {
                     sendRequestSumbmittedEmail(
-                            manager.getEmail(), // To (recipient)
+                            manager.getEmail(),
                             "New Leave Request Submitted",
-                            "submitted", // Email status
+                            "submitted",
                             "A leave request has been submitted for your review.",
-                            user.getFirstName() + " " + user.getLastName(), // User's name
-                            manager.getFirstName() + " " + manager.getLastName(), // Manager's name
-                            request.getStartDate().toString(), // Start date of leave
-                            request.getEndDate().toString() // End date of leave
+                            user.getFirstName() + " " + user.getLastName(),
+                            manager.getFirstName() + " " + manager.getLastName(),
+                            request.getStartDate().toString(),
+                            request.getEndDate().toString()
                     );
                 } catch (MessagingException e) {
                     throw new IllegalStateException("Failed to send email notification", e);
@@ -112,43 +110,10 @@ public class LeaveService {
             } else {
                 throw new IllegalStateException("Task not found for process instance: " + processInstance.getId());
             }
-
             return "Leave request created and process started with process instance id: " + processInstance.getId();
         } else {
             return "Insufficient leave balance.";
         }
-    }
-
-    public void confirmManagerTask(String taskId, String approvalStatus, String comments) {
-        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
-        if (task == null) {
-            throw new IllegalStateException("Task not found for taskId: " + taskId);
-        }
-        VariableMap variables = Variables.createVariables();
-        boolean leaveApproved = "approved".equalsIgnoreCase(approvalStatus);
-        variables.put("leaveApproved", leaveApproved);
-        variables.put("managerComments", comments);
-
-        taskService.complete(task.getId(), variables);
-    }
-
-    public void confirmRhTask(String taskId, String approvalStatus, String comments) {
-        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
-        if (task == null) {
-            throw new IllegalStateException("Task not found for taskId: " + taskId);
-        }
-
-        VariableMap variables = Variables.createVariables();
-
-        // Map the approvalStatus to leaveApproved (for RH approval)
-        boolean leaveApproved = "approved".equalsIgnoreCase(approvalStatus);  // true for "approved", false for "rejected"
-        variables.put("leaveApproved", leaveApproved);
-
-        // Pass the RH comments
-        variables.put("rhComments", comments);
-
-        // Complete the task
-        taskService.complete(task.getId(), variables);
     }
 
     public void confirmManagerTask1(UUID taskId, String approvalStatus, String comments) {
@@ -178,21 +143,20 @@ public class LeaveService {
         if (leaveApproved){
             try {
                 sendRequestSumbmittedEmail(
-                        "seifeddine.abidi@esprit.tn", // To (recipient)
+                        "seifeddine.abidi@esprit.tn",
                         "New Leave Request Submitted",
-                        "submitted", // Email status
+                        "submitted",
                         "A leave request has been submitted for your review.",
-                        user.getFirstName() + " " + user.getLastName(), // User's name
-                        manager.getFirstName() + " " + manager.getLastName(), // Manager's name
-                        leaveRequest.getStartDate().toString(), // Start date of leave
-                        leaveRequest.getEndDate().toString() // End date of leave
+                        user.getFirstName() + " " + user.getLastName(),
+                        manager.getFirstName() + " " + manager.getLastName(),
+                        leaveRequest.getStartDate().toString(),
+                        leaveRequest.getEndDate().toString()
                 );
             } catch (MessagingException e) {
                 throw new IllegalStateException("Failed to send email notification", e);
             }
         }
     }
-
 
     public void confirmRhTask1(UUID taskId, String approvalStatus, String comments) {
         Task task = taskService.createTaskQuery().taskId(taskId.toString()).singleResult();
@@ -205,7 +169,6 @@ public class LeaveService {
         }
         LeaveRequest leaveRequest = leaveRequestRepository.findById(leaveRequestId).orElseThrow(() ->
                 new IllegalStateException("LeaveRequest not found"));
-
         boolean leaveApproved = "approved".equalsIgnoreCase(approvalStatus);
         leaveRequest.updateRhApproval(leaveApproved, comments);
         leaveRequestRepository.save(leaveRequest);
@@ -239,25 +202,24 @@ public class LeaveService {
             }
         }
     }
+
     private void sendEmailNotification(boolean leaveApproved, String comments, String userEmail, String userName) {
         try {
             if (leaveApproved) {
-                // Send approval email
                 sendEmail(userEmail, "Your leave request has been approved.", "approved", "",userName);
             } else {
-                // Send rejection email with comments
                 sendEmail(userEmail, "Your leave request has been rejected.", "rejected", "Reason: " + comments,userName);
             }
         } catch (Exception e) {
         }
     }
+
     public void sendEmail(String to, String subject, String status, String message,String userName) throws MessagingException {
         Context context = new Context();
         context.setVariable("status", status);
         context.setVariable("message", message);
         context.setVariable("userName", userName);
         String htmlContent = templateEngine.process("leaveRequestNotification", context);
-
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
         helper.setTo(to);
@@ -265,12 +227,10 @@ public class LeaveService {
         helper.setText(htmlContent, true);
         Resource logoResource = new ClassPathResource("templates/siga.png");
         InputStreamSource logoSource = logoResource::getInputStream;
-
-
         helper.addInline("logo", logoSource, "image/png");
-
         mailSender.send(mimeMessage);
     }
+
     public void sendRequestSumbmittedEmail(String to, String subject, String status, String message,
                                            String userName, String managerName, String startDate, String endDate)  throws MessagingException {
         Context context = new Context();
@@ -281,7 +241,6 @@ public class LeaveService {
         context.setVariable("startDate", startDate);
         context.setVariable("endDate", endDate);
         String htmlContent = templateEngine.process("requestSubmission", context);
-
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
         helper.setTo(to);
@@ -289,10 +248,7 @@ public class LeaveService {
         helper.setText(htmlContent, true);
         Resource logoResource = new ClassPathResource("templates/siga.png");
         InputStreamSource logoSource = logoResource::getInputStream;
-
-
         helper.addInline("logo", logoSource, "image/png");
-
         mailSender.send(mimeMessage);
     }
     public List<LeaveRequest> getApprovedLeaveRequests(String userId) {
