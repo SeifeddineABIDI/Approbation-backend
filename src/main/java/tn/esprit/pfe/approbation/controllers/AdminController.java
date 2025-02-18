@@ -117,7 +117,6 @@ public class AdminController {
             @RequestParam(required = false) String sortDirection, // Add sortDirection parameter
             Pageable pageable) {
 
-        // Apply sorting if sortField and sortDirection are provided
         if (sortField != null && sortDirection != null) {
             Sort.Direction direction = Sort.Direction.fromString(sortDirection);
             pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(direction, sortField));

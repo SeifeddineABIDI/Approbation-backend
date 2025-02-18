@@ -27,4 +27,6 @@ public interface UserRepository extends JpaRepository<User, Integer>, JpaSpecifi
     void deleteUserById(Integer id);
 
     User findUserById(Integer id);
+    List<User> findByManager(User manager);
+
 }

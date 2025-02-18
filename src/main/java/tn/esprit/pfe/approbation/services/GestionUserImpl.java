@@ -192,4 +192,7 @@ public class GestionUserImpl implements IGestionUser {
             throw new RuntimeException("Failed to save image", ex);
             }
     }
+    public List<User> getUsersByManager(User manager) {
+        return userRepository.findByManager(manager);
+    }
 }

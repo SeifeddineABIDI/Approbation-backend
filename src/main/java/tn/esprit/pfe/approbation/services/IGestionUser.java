@@ -14,4 +14,5 @@ public interface IGestionUser {
     public List<UserDto> searchUsers(String firstName, String lastName, String email, String matricule);
     public UserDto updateUser(Integer userId, UserDto userDto, MultipartFile imageFile);
     public void deleteUser(Integer userId);
-}
+    public List<User> getUsersByManager(User manager);
+    }

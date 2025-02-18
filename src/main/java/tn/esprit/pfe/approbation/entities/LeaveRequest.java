@@ -2,18 +2,14 @@ package tn.esprit.pfe.approbation.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "LEAVE_REQUEST")
-@Getter
-@Setter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class LeaveRequest {
@@ -22,7 +18,7 @@ public class LeaveRequest {
     private Long id;
 
     @Column(nullable = false)
-    private LocalDate requestDate = LocalDate.now();
+    private LocalDateTime requestDate = LocalDateTime.now();
 
     @Column(nullable = false)
     private LocalDate startDate;
@@ -31,95 +27,18 @@ public class LeaveRequest {
     private LocalDate endDate;
 
     @Column(nullable = true)
-    private Boolean managerApproved;
+    private Boolean approved=null;
 
-    @Column(nullable = true)
-    private String managerComments;
+    @Column(name = "proc_inst_id",nullable = false)
+    private String procInstId;
 
-    @Column(nullable = true)
-    private LocalDateTime managerApprovalDate;
+    private Boolean goAfterMidday=false;
+    private Boolean backAfterMidday=false;
 
-    @Column(nullable = true)
-    private Boolean rhApproved;
-
-    @Column(nullable = true)
-    private String rhComments;
-
-    @Column(nullable = true)
-    private LocalDateTime rhApprovalDate;
-
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonIgnore
     private User user;
 
-    // Getters and Setters for user
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public Long getId() {
-        return id;
-    }
-    public LocalDate getRequestDate() {
-        return requestDate;
-    }
-    public LocalDate getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(LocalDate startDate) {
-        this.startDate = startDate;
-    }
-
-    public LocalDate getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(LocalDate endDate) {
-        this.endDate = endDate;
-    }
-    public void setRequestDate(LocalDate requestDate) {}
-    public Boolean getManagerApproved() {
-        return managerApproved;
-    }
-    public void setManagerApproved(Boolean managerApproved) {}
-    public String getManagerComments() {
-        return managerComments;
-    }
-    public void setManagerComments(String managerComments) {}
-    public LocalDateTime getManagerApprovalDate() {
-        return managerApprovalDate;
-    }
-    public void setManagerApprovalDate(LocalDateTime managerApprovalDate) {}
-    public Boolean getRhApproved() {
-        return rhApproved;
-    }
-    public void setRhApproved(Boolean rhApproved) {}
-    public String getRhComments() {
-        return rhComments;
-    }
-    public void setRhComments(String rhComments) {}
-    public LocalDateTime getRhApprovalDate() {
-        return rhApprovalDate;
-    }
-    public void setRhApprovalDate(LocalDateTime rhApprovalDate) {}
-
-    public void updateManagerApproval(Boolean approved, String comments) {
-        this.managerApproved = approved;
-        this.managerComments = comments;
-        this.managerApprovalDate = LocalDateTime.now();
-    }
-
-    public void updateRhApproval(Boolean approved, String comments) {
-        this.rhApproved = approved;
-        this.rhComments = comments;
-        this.rhApprovalDate = LocalDateTime.now();
-    }
 }
 
 

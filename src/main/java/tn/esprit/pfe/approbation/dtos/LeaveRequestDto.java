@@ -7,6 +7,8 @@ public class LeaveRequestDto {
     private String userId;
     private LocalDate startDate;
     private LocalDate endDate;
+    private Boolean goAfterMidday=false;
+    private Boolean backAfterMidday=false;
 
     public String getUserId() {
         return userId;
@@ -25,5 +27,18 @@ public class LeaveRequestDto {
     }
     public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
+    }
+    public boolean isGoAfterMidday() {
+        return goAfterMidday;
+    }
+    public void setGoAfterMidday(boolean goAfterMidday) {
+        this.goAfterMidday = goAfterMidday;
+    }
+
+    public boolean isBackAfterMidday() {
+        return backAfterMidday;
+    }
+    public void setBackAfterMidday(boolean backAfterMidday) {
+        this.backAfterMidday = backAfterMidday;
     }
 }

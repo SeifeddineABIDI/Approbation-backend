@@ -6,12 +6,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import tn.esprit.pfe.approbation.dtos.LeaveRequestDto;
 import tn.esprit.pfe.approbation.dtos.UserDto;
 import tn.esprit.pfe.approbation.entities.LeaveRequest;
+import tn.esprit.pfe.approbation.entities.Role;
 import tn.esprit.pfe.approbation.entities.User;
 import tn.esprit.pfe.approbation.repositories.LeaveRequestRepository;
 import tn.esprit.pfe.approbation.repositories.UserRepository;
@@ -120,4 +122,28 @@ public class UserController {
             throw new RuntimeException("Failed to save image", ex);
         }
     }
+    @GetMapping("/team")
+    public ResponseEntity<List<User>> getTeam(@AuthenticationPrincipal User authenticatedUser) {
+        if (authenticatedUser.getRole() == Role.MANAGER) {
+            List<User> team = gestionUser.getUsersByManager(authenticatedUser);
+            return ResponseEntity.ok(team);
+        } else if (authenticatedUser.getRole() != Role.MANAGER) {
+            User manager = authenticatedUser.getManager();
+
+            if (manager != null) {
+                List<User> teamMembers = gestionUser.getUsersByManager(manager);
+
+                teamMembers.remove(authenticatedUser);
+
+                return ResponseEntity.ok(teamMembers);
+            } else {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(null);
+            }
+        } else {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(null);
+        }
+    }
+
 }

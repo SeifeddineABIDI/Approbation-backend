@@ -1,8 +1,10 @@
 package tn.esprit.pfe.approbation.controllers;
 
 import jakarta.validation.Valid;
+import org.camunda.bpm.engine.HistoryService;
 import org.camunda.bpm.engine.RuntimeService;
 import org.camunda.bpm.engine.TaskService;
+import org.camunda.bpm.engine.history.HistoricTaskInstance;
 import org.camunda.bpm.engine.task.Task;
 import org.camunda.bpm.engine.task.TaskQuery;
 import org.slf4j.Logger;
@@ -11,11 +13,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import tn.esprit.pfe.approbation.dtos.TaskConfirmationDTO;
-import tn.esprit.pfe.approbation.dtos.TaskDTO;
+import tn.esprit.pfe.approbation.dtos.*;
 import tn.esprit.pfe.approbation.delegate.UpdateConge;
-import tn.esprit.pfe.approbation.dtos.UserDto;
+import tn.esprit.pfe.approbation.entities.LeaveRequest;
 import tn.esprit.pfe.approbation.entities.User;
+import tn.esprit.pfe.approbation.repositories.LeaveRequestRepository;
 import tn.esprit.pfe.approbation.repositories.UserRepository;
 import tn.esprit.pfe.approbation.services.LeaveService;
 import java.time.LocalDate;
@@ -30,6 +32,8 @@ import java.util.stream.Collectors;
 public class TaskController {
 
     @Autowired
+    LeaveRequestRepository leaveRequestRepository;
+    @Autowired
     private TaskService taskService;
     @Autowired
     private LeaveService leaveService;
@@ -40,6 +44,8 @@ public class TaskController {
     private static final Logger logger = LoggerFactory.getLogger(TaskController.class);
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private HistoryService historyService;
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<TaskDTO>> getTasksByUser(@PathVariable String userId) {
@@ -86,12 +92,12 @@ public class TaskController {
         }
     }
 
-    @PostMapping("/confirm/rh/{taskId}")
-    public ResponseEntity<String> confirmRhTask1(@PathVariable UUID taskId, @Valid @RequestBody TaskConfirmationDTO confirmationDto) {
+    @PostMapping("/confirm/rh/{taskId}/{matricule}")
+    public ResponseEntity<String> confirmRhTask1(@PathVariable UUID taskId,@PathVariable String matricule, @Valid @RequestBody TaskConfirmationDTO confirmationDto) {
         String approvalStatus = confirmationDto.getApprovalStatus();
         String comment = confirmationDto.getComments();
         try {
-            leaveService.confirmRhTask1(taskId, approvalStatus, comment);
+            leaveService.confirmRhTask1(taskId, approvalStatus, comment,matricule);
             return ResponseEntity.ok("RH's response saved and task completed successfully.");
         } catch (Exception e) {
             logger.error("Error completing RH task", e);
@@ -110,5 +116,51 @@ public class TaskController {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    @GetMapping("/user/{userId}/task-stats")
+    public TaskStatsDto getUserTaskStats(@PathVariable String userId) {
+        User user = userRepository.findByMatricule(userId);
+
+        if (user == null) {
+            throw new IllegalArgumentException("User not found");
+        }
+
+        // Get all active tasks assigned to the user
+        List<Task> assignedTasks = taskService.createTaskQuery().taskAssignee(userId).list();
+
+        // Get all completed tasks by querying the HistoryService for completed tasks
+        List<HistoricTaskInstance> completedTasksHistory = historyService.createHistoricTaskInstanceQuery()
+                .taskAssignee(userId)
+                .finished()
+                .list();
+
+        long completedTasks = completedTasksHistory.size();
+
+        // Count the waiting tasks (tasks that are not completed)
+        long waitingTasks = assignedTasks.size();
+
+        // Return the statistics
+        return new TaskStatsDto(completedTasks, waitingTasks);
+    }
+    @GetMapping("/process/{instanceId}")
+    public List<TaskDetailsDto> getTasksByProcessInstance(@PathVariable String instanceId) {
+        return leaveService.getProcessTasksByInstanceId(instanceId);
+    }
+    @GetMapping("/get/assignee/{assignee}")
+    public ResponseEntity<List<TaskDetailsDto>> getTasksByAssignee(@PathVariable String assignee) {
+        List<TaskDetailsDto> tasks = leaveService.getTasksByAssignee(assignee);
+        if (tasks.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(tasks);
+    }
+    @GetMapping("/requests/{matricule}")
+    public List<LeaveRequest> getLeaveRequestsByMatricule(@PathVariable String matricule) {
+        return leaveRequestRepository.findByUserMatriculeOrderByIdDesc(matricule);
+    }
+    @GetMapping("/requestsConfirmed/{matricule}")
+    public List<LeaveRequest> getLeaveRequestsConfirmedByMatricule(@PathVariable String matricule) {
+        return leaveRequestRepository.findByUserMatriculeAndApprovedOrderByIdDesc(matricule,true);
     }
 }

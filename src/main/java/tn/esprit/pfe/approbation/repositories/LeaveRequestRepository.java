@@ -15,13 +15,8 @@ import java.util.Optional;
 @Repository
 public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long> {
     Optional<LeaveRequest> findById(Long id);
-
-    @Query("SELECT lr FROM LeaveRequest lr WHERE lr.endDate = :today " +
-            "AND lr.managerApproved = true AND lr.rhApproved = true " +
-            "AND lr.id IN (SELECT MAX(lr2.id) FROM LeaveRequest lr2 WHERE lr2.user.matricule = lr.user.matricule GROUP BY lr2.user.matricule)")
-    List<LeaveRequest> findApprovedLeaveRequestsEndingToday(@Param("today") LocalDate today);
-
-    List<LeaveRequest> findByUserMatriculeAndManagerApprovedTrueAndRhApprovedTrueOrderByIdDesc(String userId);
+    List<LeaveRequest> findByUserMatriculeAndApprovedOrderByIdDesc(String userId, Boolean approved);
+    List<LeaveRequest> findByUserMatriculeOrderByIdDesc(String userId);
 
     @Query("SELECT lr FROM LeaveRequest lr WHERE lr.user.matricule = :matricule AND " +
             "(:startDate BETWEEN lr.startDate AND lr.endDate OR " +
@@ -31,16 +26,25 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
                                                     @Param("startDate") LocalDate startDate,
                                                     @Param("endDate") LocalDate endDate);
     List<LeaveRequest> findAll();
-    @Query("SELECT l FROM LeaveRequest l WHERE " +
+
+    @Query("SELECT l FROM LeaveRequest l " +
+            "JOIN l.user u " +  // Join the user entity
+            "WHERE LOWER(CAST(l.id AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(CAST(l.requestDate AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(CAST(l.startDate AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(CAST(l.endDate AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(CAST(l.managerApproved AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(l.managerComments) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(CAST(l.managerApprovalDate AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(CAST(l.rhApproved AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(l.rhComments) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(CAST(l.rhApprovalDate AS string)) LIKE LOWER(CONCAT('%', :query, '%'))")
+            "LOWER(l.procInstId) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(CAST(l.approved AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +  // Example to search by user's username
+            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(u.matricule) LIKE LOWER(CONCAT('%', :query, '%')) OR " +  // Example to search by user's first name
+            "LOWER(u.manager.matricule) LIKE LOWER(CONCAT('%', :query, '%'))") // Example to search by user's last name
     Page<LeaveRequest> searchRequests(@Param("query") String query, Pageable pageable);
+
+
+    LeaveRequest findByProcInstId(String processInstanceId);
+
+
+
 
 }

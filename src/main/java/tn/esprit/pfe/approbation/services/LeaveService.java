@@ -3,10 +3,13 @@ package tn.esprit.pfe.approbation.services;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
+import org.camunda.bpm.engine.HistoryService;
 import org.camunda.bpm.engine.RuntimeService;
 import org.camunda.bpm.engine.TaskService;
+import org.camunda.bpm.engine.history.HistoricTaskInstance;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.camunda.bpm.engine.task.Task;
+import org.camunda.bpm.engine.task.TaskQuery;
 import org.camunda.bpm.engine.variable.VariableMap;
 import org.camunda.bpm.engine.variable.Variables;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import tn.esprit.pfe.approbation.dtos.LeaveRequestDto;
+import tn.esprit.pfe.approbation.dtos.TaskDetailsDto;
 import tn.esprit.pfe.approbation.entities.LeaveRequest;
 import tn.esprit.pfe.approbation.entities.User;
 import tn.esprit.pfe.approbation.repositories.LeaveRequestRepository;
@@ -27,10 +31,8 @@ import tn.esprit.pfe.approbation.repositories.UserRepository;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -48,6 +50,8 @@ public class LeaveService {
     private SpringTemplateEngine templateEngine;
     @Autowired
     private JavaMailSenderImpl mailSender;
+    @Autowired
+    private HistoryService historyService;
 
     public String handleLeaveRequest(LeaveRequestDto request) {
         User user = userRepository.findByMatricule(request.getUserId());
@@ -66,33 +70,36 @@ public class LeaveService {
         if (!overlappingRequests.isEmpty()) {
             return "There is already a leave request that overlaps with this period.";
         }
+        boolean goAfterMidday = request.isGoAfterMidday();
+        boolean backAfterMidday = request.isBackAfterMidday();
         long daysRequested = ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate());
         if (user.getSoldeConge() >= daysRequested) {
             LeaveRequest leaveRequest = new LeaveRequest();
             leaveRequest.setUser(user);
             leaveRequest.setStartDate(request.getStartDate());
             leaveRequest.setEndDate(request.getEndDate());
-            leaveRequest.setManagerApproved(false);
-            leaveRequest.setManagerComments(null);
-            leaveRequest.setManagerApprovalDate(null);
-            leaveRequest.setRhApproved(false);
-            leaveRequest.setRhComments(null);
-            leaveRequest.setRhApprovalDate(null);
-            leaveRequestRepository.save(leaveRequest);
-
+            leaveRequest.setGoAfterMidday(goAfterMidday);
+            leaveRequest.setBackAfterMidday(backAfterMidday);
             Map<String, Object> variables = new HashMap<>();
             variables.put("userId", request.getUserId());
             variables.put("startDate", request.getStartDate());
             variables.put("endDate", request.getEndDate());
+            variables.put("goAfterMidday", request.isGoAfterMidday());
+            variables.put("backAfterMidday", request.isBackAfterMidday());
             variables.put("daysRequested", daysRequested);
             variables.put("managerId", manager.getMatricule());
-            variables.put("leaveRequestId", leaveRequest.getId());
+            variables.put("leaveRequestId", UUID.randomUUID().toString());
 
             ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("Process_0d8lhc1", variables);
-
-            Task task = taskService.createTaskQuery().processInstanceId(processInstance.getId()).singleResult();
-            if (task != null) {
-                taskService.setAssignee(task.getId(), manager.getMatricule());
+            leaveRequest.setProcInstId(processInstance.getProcessInstanceId());
+            leaveRequestRepository.save(leaveRequest);
+            List<Task> tasks = taskService.createTaskQuery().processInstanceId(processInstance.getId()).list();
+            for (Task tas : tasks) {
+                taskService.setOwner(tas.getId(), request.getUserId());
+            }
+            if (!tasks.isEmpty()) {
+                Task firstTask = tasks.get(0);
+                taskService.setAssignee(firstTask.getId(), manager.getMatricule());
                 try {
                     sendRequestSumbmittedEmail(
                             manager.getEmail(),
@@ -121,26 +128,35 @@ public class LeaveService {
         if (task == null) {
             throw new IllegalStateException("Task not found for taskId: " + taskId);
         }
-        Long leaveRequestId = (Long) taskService.getVariable(task.getId(), "leaveRequestId");
+
+        boolean leaveApproved = "approved".equalsIgnoreCase(approvalStatus);
+        LocalDate startDate = (LocalDate) taskService.getVariable(task.getId(), "startDate");
+        LocalDate endDate = (LocalDate) taskService.getVariable(task.getId(), "endDate");
+        String leaveRequestId = taskService.getVariable(task.getId(), "leaveRequestId").toString();
         if (leaveRequestId == null) {
             throw new IllegalStateException("leaveRequestId variable not found in task process");
         }
-        LeaveRequest leaveRequest = leaveRequestRepository.findById(leaveRequestId).orElseThrow(() ->
-                new IllegalStateException("LeaveRequest not found"));
-        boolean leaveApproved = "approved".equalsIgnoreCase(approvalStatus);
-        leaveRequest.updateManagerApproval(leaveApproved, comments);
-        leaveRequestRepository.save(leaveRequest);
+        taskService.setVariable(task.getId(), "managerApproved", leaveApproved);
+        taskService.setVariable(task.getId(), "managerComments", comments);
+        taskService.setDescription(task.getId(), comments);
         VariableMap variables = Variables.createVariables();
         variables.put("leaveApproved", leaveApproved);
         variables.put("managerComments", comments);
         taskService.complete(task.getId(), variables);
-        User user = leaveRequest.getUser();
+        User user = userRepository.findByMatricule(task.getOwner());
         User manager = user.getManager();
         System.out.println("leaveApproved: " + leaveApproved + "");
         if (!leaveApproved) {
-            sendEmailNotification(leaveApproved, comments, leaveRequest.getUser().getEmail(), user.getFirstName() + " " + user.getLastName());
+            sendEmailNotification(leaveApproved, comments, user.getEmail(), user.getFirstName() + " " + user.getLastName());
+            LeaveRequest leaveRequest = leaveRequestRepository.findByProcInstId(task.getProcessInstanceId());
+            if (leaveRequest != null) {
+                leaveRequest.setApproved(false);  // Set approved to false
+                leaveRequestRepository.save(leaveRequest);  // Save the updated LeaveRequest
+            } else {
+                throw new IllegalStateException("LeaveRequest not found for process instance: " + task.getProcessInstanceId());
+            }
         }
-        if (leaveApproved){
+        if (leaveApproved) {
             try {
                 sendRequestSumbmittedEmail(
                         "seifeddine.abidi@esprit.tn",
@@ -149,35 +165,47 @@ public class LeaveService {
                         "A leave request has been submitted for your review.",
                         user.getFirstName() + " " + user.getLastName(),
                         manager.getFirstName() + " " + manager.getLastName(),
-                        leaveRequest.getStartDate().toString(),
-                        leaveRequest.getEndDate().toString()
+                        startDate.toString(),
+                        endDate.toString()
                 );
             } catch (MessagingException e) {
                 throw new IllegalStateException("Failed to send email notification", e);
             }
+            List<Task> rhTasks = taskService.createTaskQuery()
+                    .processInstanceId(task.getProcessInstanceId())
+                    .taskDefinitionKey("Activity_0mgsywo")  // Correct key for RH task
+                    .list();
+            if (!rhTasks.isEmpty()) {
+                Task rhTask = rhTasks.get(0);
+                // Set the owner for the RH task (e.g., HR User ID)
+                taskService.setOwner(rhTask.getId(), task.getOwner());  // Set to the RH user ID
+            }
         }
     }
 
-    public void confirmRhTask1(UUID taskId, String approvalStatus, String comments) {
+    public void confirmRhTask1(UUID taskId, String approvalStatus, String comments,String matricule) {
         Task task = taskService.createTaskQuery().taskId(taskId.toString()).singleResult();
         if (task == null) {
             throw new IllegalStateException("Task not found for taskId: " + taskId);
         }
-        Long leaveRequestId = (Long) taskService.getVariable(task.getId(), "leaveRequestId");
+        LeaveRequest leaveRequest = leaveRequestRepository.findByProcInstId(task.getProcessInstanceId());
+        String leaveRequestId = taskService.getVariable(task.getId(), "leaveRequestId").toString();
         if (leaveRequestId == null) {
             throw new IllegalStateException("leaveRequestId variable not found in task process");
         }
-        LeaveRequest leaveRequest = leaveRequestRepository.findById(leaveRequestId).orElseThrow(() ->
-                new IllegalStateException("LeaveRequest not found"));
+        System.out.println("leaveRequestId: " + leaveRequestId + "");
         boolean leaveApproved = "approved".equalsIgnoreCase(approvalStatus);
-        leaveRequest.updateRhApproval(leaveApproved, comments);
+        leaveRequest.setApproved(leaveApproved);
         leaveRequestRepository.save(leaveRequest);
+        taskService.setAssignee(task.getId(),matricule);
+        taskService.setDescription(task.getId(), comments);
         VariableMap variables = Variables.createVariables();
         variables.put("leaveApproved", leaveApproved);
         variables.put("rhComments", comments);
         taskService.complete(task.getId(), variables);
-        User user = leaveRequest.getUser();
-        sendEmailNotification(leaveApproved, comments, leaveRequest.getUser().getEmail(),user.getFirstName() + " " + user.getLastName());
+        User user = userRepository.findByMatricule(task.getOwner());
+        sendEmailNotification(leaveApproved, comments, user.getEmail(), user.getFirstName() + " " + user.getLastName());
+
     }
 
     @Scheduled(cron = "0 0 0 1 * ?")
@@ -185,12 +213,12 @@ public class LeaveService {
         double dailyAccrualRate = 20.0 / 12;
         List<User> users = userRepository.findAll();
         for (User user : users) {
-                user.setSoldeConge(user.getSoldeConge() + dailyAccrualRate);
-                userRepository.save(user);
+            user.setSoldeConge(user.getSoldeConge() + dailyAccrualRate);
+            userRepository.save(user);
         }
     }
 
-    @Scheduled(cron = "0 5 0 * * ?")
+    /*@Scheduled(cron = "0 5 0 * * ?")
     public void updateLeaveStatus() {
         LocalDate today = LocalDate.now();
         List<LeaveRequest> leaveRequests = leaveRequestRepository.findApprovedLeaveRequestsEndingToday(today);
@@ -201,20 +229,20 @@ public class LeaveService {
                 userRepository.save(user);
             }
         }
-    }
+    }*/
 
     private void sendEmailNotification(boolean leaveApproved, String comments, String userEmail, String userName) {
         try {
             if (leaveApproved) {
-                sendEmail(userEmail, "Your leave request has been approved.", "approved", "",userName);
+                sendEmail(userEmail, "Your leave request has been approved.", "approved", "", userName);
             } else {
-                sendEmail(userEmail, "Your leave request has been rejected.", "rejected", "Reason: " + comments,userName);
+                sendEmail(userEmail, "Your leave request has been rejected.", "rejected", "Reason: " + comments, userName);
             }
         } catch (Exception e) {
         }
     }
 
-    public void sendEmail(String to, String subject, String status, String message,String userName) throws MessagingException {
+    public void sendEmail(String to, String subject, String status, String message, String userName) throws MessagingException {
         Context context = new Context();
         context.setVariable("status", status);
         context.setVariable("message", message);
@@ -232,7 +260,7 @@ public class LeaveService {
     }
 
     public void sendRequestSumbmittedEmail(String to, String subject, String status, String message,
-                                           String userName, String managerName, String startDate, String endDate)  throws MessagingException {
+                                           String userName, String managerName, String startDate, String endDate) throws MessagingException {
         Context context = new Context();
         context.setVariable("status", status);
         context.setVariable("message", message);
@@ -251,7 +279,69 @@ public class LeaveService {
         helper.addInline("logo", logoSource, "image/png");
         mailSender.send(mimeMessage);
     }
+
     public List<LeaveRequest> getApprovedLeaveRequests(String userId) {
-        return leaveRequestRepository.findByUserMatriculeAndManagerApprovedTrueAndRhApprovedTrueOrderByIdDesc(userId);
+        return leaveRequestRepository.findByUserMatriculeOrderByIdDesc(userId);
     }
+
+    public List<TaskDetailsDto> getProcessTasksByInstanceId(String instanceId) {
+        List<HistoricTaskInstance> tasks = historyService.createHistoricTaskInstanceQuery()
+                .processInstanceId(instanceId)
+                .list();
+        return tasks.stream()
+                .map(task -> new TaskDetailsDto(
+                        task.getId(),
+                        task.getRootProcessInstanceId(),
+                        task.getName(),
+                        task.getAssignee(),
+                        task.getOwner(),
+                        task.getStartTime(),
+                        task.getEndTime(),
+                        task.getDescription(),
+                        task.getDeleteReason(),
+                        null
+                ))
+                .collect(Collectors.toList());
+    }
+    public List<TaskDetailsDto> getTasksByAssignee(String assignee) {
+        List<HistoricTaskInstance> tasks = historyService.createHistoricTaskInstanceQuery()
+                .taskAssignee(assignee)
+                .finished()
+                .list();
+
+        tasks.sort(Comparator.comparing(HistoricTaskInstance::getStartTime).reversed());
+
+        return tasks.stream()
+                .map(task -> {
+                    String processInstanceId = task.getProcessInstanceId();
+                    boolean processInstanceExists = runtimeService.createExecutionQuery()
+                            .processInstanceId(processInstanceId)
+                            .singleResult() != null;
+                    Boolean leaveApproved = false;
+                    if (processInstanceExists) {
+                        Map<String, Object> processVariables = runtimeService.getVariables(processInstanceId);
+                        leaveApproved = (Boolean) processVariables.get("leaveApproved");
+                        if (leaveApproved == null) {
+                            leaveApproved = false;
+                        }
+                    }
+                    return new TaskDetailsDto(
+                            task.getId(),
+                            task.getProcessInstanceId(),
+                            task.getName(),
+                            task.getAssignee(),
+                            task.getOwner(),
+                            task.getStartTime(),
+                            task.getEndTime(),
+                            task.getDescription(),
+                            task.getDeleteReason(),
+                            leaveApproved
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+
+
+
 }
