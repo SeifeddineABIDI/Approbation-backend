@@ -22,14 +22,17 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
+import tn.esprit.pfe.approbation.dtos.AuthorizationRequestDto;
 import tn.esprit.pfe.approbation.dtos.LeaveRequestDto;
 import tn.esprit.pfe.approbation.dtos.TaskDetailsDto;
 import tn.esprit.pfe.approbation.entities.LeaveRequest;
 import tn.esprit.pfe.approbation.entities.User;
 import tn.esprit.pfe.approbation.repositories.LeaveRequestRepository;
+import tn.esprit.pfe.approbation.repositories.TypeCongeRepository;
 import tn.esprit.pfe.approbation.repositories.UserRepository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -52,6 +55,8 @@ public class LeaveService {
     private JavaMailSenderImpl mailSender;
     @Autowired
     private HistoryService historyService;
+    @Autowired
+    private TypeCongeRepository typeCongeRepository;
 
     public String handleLeaveRequest(LeaveRequestDto request) {
         User user = userRepository.findByMatricule(request.getUserId());
@@ -62,10 +67,22 @@ public class LeaveService {
         if (manager == null) {
             return "User does not have a manager assigned.";
         }
+        LocalDateTime startDateTime = request.getStartDate().atStartOfDay();
+        LocalDateTime endDateTime = request.getEndDate().atStartOfDay();
+
+        if (request.isGoAfterMidday()) {
+            startDateTime = startDateTime.withHour(12).withMinute(0);
+            endDateTime = endDateTime.withHour(23).withMinute(59);
+        }
+        if (request.isBackAfterMidday()) {
+            endDateTime = endDateTime.withHour(12).withMinute(0);
+        } else {
+            endDateTime = endDateTime.plusDays(1).withHour(0).withMinute(0); // End at midnight
+        }
         List<LeaveRequest> overlappingRequests = leaveRequestRepository.findOverlappingLeaveRequests(
                 request.getUserId(),
-                request.getStartDate(),
-                request.getEndDate()
+                startDateTime,
+                endDateTime
         );
         if (!overlappingRequests.isEmpty()) {
             return "There is already a leave request that overlaps with this period.";
@@ -76,14 +93,15 @@ public class LeaveService {
         if (user.getSoldeConge() >= daysRequested) {
             LeaveRequest leaveRequest = new LeaveRequest();
             leaveRequest.setUser(user);
-            leaveRequest.setStartDate(request.getStartDate());
-            leaveRequest.setEndDate(request.getEndDate());
+            leaveRequest.setStartDate(startDateTime);
+            leaveRequest.setEndDate(endDateTime);
             leaveRequest.setGoAfterMidday(goAfterMidday);
             leaveRequest.setBackAfterMidday(backAfterMidday);
+            leaveRequest.setType(typeCongeRepository.findByName("Congé"));
             Map<String, Object> variables = new HashMap<>();
             variables.put("userId", request.getUserId());
-            variables.put("startDate", request.getStartDate());
-            variables.put("endDate", request.getEndDate());
+            variables.put("startDate", startDateTime);
+            variables.put("endDate", endDateTime);
             variables.put("goAfterMidday", request.isGoAfterMidday());
             variables.put("backAfterMidday", request.isBackAfterMidday());
             variables.put("daysRequested", daysRequested);
@@ -108,8 +126,8 @@ public class LeaveService {
                             "A leave request has been submitted for your review.",
                             user.getFirstName() + " " + user.getLastName(),
                             manager.getFirstName() + " " + manager.getLastName(),
-                            request.getStartDate().toString(),
-                            request.getEndDate().toString()
+                            startDateTime.toString(),
+                            endDateTime.toString()
                     );
                 } catch (MessagingException e) {
                     throw new IllegalStateException("Failed to send email notification", e);
@@ -128,10 +146,28 @@ public class LeaveService {
         if (task == null) {
             throw new IllegalStateException("Task not found for taskId: " + taskId);
         }
-
         boolean leaveApproved = "approved".equalsIgnoreCase(approvalStatus);
-        LocalDate startDate = (LocalDate) taskService.getVariable(task.getId(), "startDate");
-        LocalDate endDate = (LocalDate) taskService.getVariable(task.getId(), "endDate");
+        Object startDateObj = taskService.getVariable(task.getId(), "startDate");
+        LocalDateTime startDate;
+        if (startDateObj instanceof LocalDate) {
+            startDate = ((LocalDate) startDateObj).atStartOfDay(); // Convert LocalDate to LocalDateTime (midnight)
+        } else if (startDateObj instanceof LocalDateTime) {
+            startDate = (LocalDateTime) startDateObj; // Cast if already LocalDateTime
+        } else {
+            throw new IllegalStateException("Unexpected type for startDate: " +
+                    (startDateObj != null ? startDateObj.getClass().getName() : "null"));
+        }
+
+        Object endDateObj = taskService.getVariable(task.getId(), "endDate");
+        LocalDateTime endDate;
+        if (endDateObj instanceof LocalDate) {
+            endDate = ((LocalDate) endDateObj).atStartOfDay(); // Convert LocalDate to LocalDateTime (midnight)
+        } else if (endDateObj instanceof LocalDateTime) {
+            endDate = (LocalDateTime) endDateObj; // Cast if already LocalDateTime
+        } else {
+            throw new IllegalStateException("Unexpected type for endDate: " +
+                    (endDateObj != null ? endDateObj.getClass().getName() : "null"));
+        }
         String leaveRequestId = taskService.getVariable(task.getId(), "leaveRequestId").toString();
         if (leaveRequestId == null) {
             throw new IllegalStateException("leaveRequestId variable not found in task process");
@@ -150,13 +186,16 @@ public class LeaveService {
             sendEmailNotification(leaveApproved, comments, user.getEmail(), user.getFirstName() + " " + user.getLastName());
             LeaveRequest leaveRequest = leaveRequestRepository.findByProcInstId(task.getProcessInstanceId());
             if (leaveRequest != null) {
-                leaveRequest.setApproved(false);  // Set approved to false
-                leaveRequestRepository.save(leaveRequest);  // Save the updated LeaveRequest
+                leaveRequest.setApproved(false);
+                leaveRequestRepository.save(leaveRequest);
             } else {
                 throw new IllegalStateException("LeaveRequest not found for process instance: " + task.getProcessInstanceId());
             }
         }
         if (leaveApproved) {
+            LeaveRequest leaveRequest = leaveRequestRepository.findByProcInstId(task.getProcessInstanceId());
+            leaveRequest.setApproved(true);
+            leaveRequestRepository.save(leaveRequest);
             try {
                 sendRequestSumbmittedEmail(
                         "seifeddine.abidi@esprit.tn",
@@ -173,12 +212,11 @@ public class LeaveService {
             }
             List<Task> rhTasks = taskService.createTaskQuery()
                     .processInstanceId(task.getProcessInstanceId())
-                    .taskDefinitionKey("Activity_0mgsywo")  // Correct key for RH task
+                    .taskDefinitionKey("Activity_0mgsywo")
                     .list();
             if (!rhTasks.isEmpty()) {
                 Task rhTask = rhTasks.get(0);
-                // Set the owner for the RH task (e.g., HR User ID)
-                taskService.setOwner(rhTask.getId(), task.getOwner());  // Set to the RH user ID
+                taskService.setOwner(rhTask.getId(), task.getOwner());
             }
         }
     }
@@ -205,7 +243,6 @@ public class LeaveService {
         taskService.complete(task.getId(), variables);
         User user = userRepository.findByMatricule(task.getOwner());
         sendEmailNotification(leaveApproved, comments, user.getEmail(), user.getFirstName() + " " + user.getLastName());
-
     }
 
     @Scheduled(cron = "0 0 0 1 * ?")
@@ -303,14 +340,13 @@ public class LeaveService {
                 ))
                 .collect(Collectors.toList());
     }
+
     public List<TaskDetailsDto> getTasksByAssignee(String assignee) {
         List<HistoricTaskInstance> tasks = historyService.createHistoricTaskInstanceQuery()
                 .taskAssignee(assignee)
                 .finished()
                 .list();
-
         tasks.sort(Comparator.comparing(HistoricTaskInstance::getStartTime).reversed());
-
         return tasks.stream()
                 .map(task -> {
                     String processInstanceId = task.getProcessInstanceId();
@@ -341,7 +377,90 @@ public class LeaveService {
                 .collect(Collectors.toList());
     }
 
+    public String handleAuthorizationRequest(AuthorizationRequestDto request) {
+        User user = userRepository.findByMatricule(request.getUserId());
+        if (user == null) {
+            throw new IllegalArgumentException("User not found");
+        }
+        User manager = user.getManager();
+        if (manager == null) {
+            return "User does not have a manager assigned.";
+        }
+        LocalDateTime startDateTime = request.getStartDateTime();
+        LocalDateTime endDateTime = request.getEndDateTime();
+        long hoursRequested = ChronoUnit.HOURS.between(startDateTime, endDateTime);
+        System.out.println("Hours requested..........."+hoursRequested);
+        if (hoursRequested != 1 && hoursRequested != 2) {
+            return "Authorization request must be exactly 1 hour or 2 hours.";
+        }
+        if (hoursRequested > 2) {
+            return "Authorization request cannot exceed 2 hours.";
+        }
+        List<LeaveRequest> overlappingRequests = leaveRequestRepository.findOverlappingLeaveRequests(
+                request.getUserId(), startDateTime, endDateTime
+        );
+        if (!overlappingRequests.isEmpty()) {
+            return "There is already a request that overlaps with this period.";
+        }
+        LocalDateTime startOfMonth = startDateTime.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusSeconds(1);
+        List<LeaveRequest> monthlyAuthRequests = leaveRequestRepository.findByUserMatriculeAndStartDateBetween(
+                        request.getUserId(), startOfMonth, endOfMonth
+                ).stream()
+                .filter(req -> "Autorisation".equals(req.getType().getName()))
+                .collect(Collectors.toList());
+        if (0 >= user.getOccurAutorisation()) {
+            return "Maximum number of authorization occurrences (2) reached for this month.";
+        }
+        long totalHoursRequestedThisMonth = monthlyAuthRequests.stream()
+                .mapToLong(req -> ChronoUnit.HOURS.between(req.getStartDate(), req.getEndDate()))
+                .sum();
 
+        if (hoursRequested > user.getSoldeAutorisation()) {
+            return "Insufficient authorization balance. You have " + user.getSoldeAutorisation() + " hours remaining.";
+        }
+        LeaveRequest authRequest = new LeaveRequest();
+        authRequest.setUser(user);
+        authRequest.setStartDate(startDateTime);
+        authRequest.setEndDate(endDateTime);
+        authRequest.setType(typeCongeRepository.findByName("Autorisation"));
+        authRequest.setGoAfterMidday(false);
+        authRequest.setBackAfterMidday(false);
 
-
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("userId", request.getUserId());
+        variables.put("startDate", startDateTime);
+        variables.put("endDate", endDateTime);
+        variables.put("hoursRequested", hoursRequested);
+        variables.put("managerId", manager.getMatricule());
+        variables.put("leaveRequestId", UUID.randomUUID().toString());
+        ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("Process_03gv9fu", variables);
+        authRequest.setProcInstId(processInstance.getProcessInstanceId());
+        leaveRequestRepository.save(authRequest);
+        List<Task> tasks = taskService.createTaskQuery().processInstanceId(processInstance.getId()).list();
+        for (Task task : tasks) {
+            taskService.setOwner(task.getId(), request.getUserId());
+        }
+        if (!tasks.isEmpty()) {
+            Task firstTask = tasks.get(0);
+            taskService.setAssignee(firstTask.getId(), manager.getMatricule());
+            try {
+                sendRequestSumbmittedEmail(
+                        manager.getEmail(),
+                        "New Authorization Request Submitted",
+                        "submitted",
+                        "An authorization request has been submitted for your review.",
+                        user.getFirstName() + " " + user.getLastName(),
+                        manager.getFirstName() + " " + manager.getLastName(),
+                        startDateTime.toString(),
+                        endDateTime.toString()
+                );
+            } catch (MessagingException e) {
+                throw new IllegalStateException("Failed to send email notification", e);
+            }
+        } else {
+            throw new IllegalStateException("Task not found for process instance: " + processInstance.getId());
+        }
+        return "Authorization request created and process started with process instance id: " + processInstance.getId();
+    }
 }

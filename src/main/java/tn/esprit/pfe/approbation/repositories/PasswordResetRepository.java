@@ -1,6 +1,7 @@
 package tn.esprit.pfe.approbation.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 import tn.esprit.pfe.approbation.entities.PasswordReset;
 import tn.esprit.pfe.approbation.entities.User;
 

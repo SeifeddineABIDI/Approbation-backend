@@ -1,6 +1,7 @@
 package tn.esprit.pfe.approbation.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,10 +22,10 @@ public class LeaveRequest {
     private LocalDateTime requestDate = LocalDateTime.now();
 
     @Column(nullable = false)
-    private LocalDate startDate;
+    private LocalDateTime startDate;
 
     @Column(nullable = false)
-    private LocalDate endDate;
+    private LocalDateTime endDate;
 
     @Column(nullable = true)
     private Boolean approved=null;
@@ -34,6 +35,11 @@ public class LeaveRequest {
 
     private Boolean goAfterMidday=false;
     private Boolean backAfterMidday=false;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JsonIgnoreProperties("leaveRequests")
+    @JoinColumn(name = "type_id")
+    private TypeConge type;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)

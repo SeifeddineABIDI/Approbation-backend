@@ -33,7 +33,6 @@ public class UpdateConge implements JavaDelegate {
         if (user == null) {
             throw new Exception("User not found");
         }
-
         if (leaveApproved) {
             user.setSoldeConge(user.getSoldeConge() - daysRequested);
             userRepository.save(user);
@@ -44,7 +43,6 @@ public class UpdateConge implements JavaDelegate {
 
         }
         execution.setVariable("leaveApproved", leaveApproved);
-
     }
 
     public void sendEmail(String to, String userName, String status, String message) throws MessagingException {
@@ -52,15 +50,12 @@ public class UpdateConge implements JavaDelegate {
         context.setVariable("userName", userName);
         context.setVariable("status", status);
         context.setVariable("message", message);
-
         String htmlContent = templateEngine.process("leaveRequestNotification", context);
-
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
         helper.setTo(to);
         helper.setSubject("Leave Request Status");
         helper.setText(htmlContent, true);
-
         mailSender.send(mimeMessage);
     }
 }

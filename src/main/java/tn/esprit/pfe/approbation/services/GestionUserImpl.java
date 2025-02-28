@@ -57,18 +57,14 @@ public class GestionUserImpl implements IGestionUser {
 
         String lastMatricule = userRepository.findLastMatricule();
         logger.info("Last matricule from database: {}", lastMatricule);
-
         int nextSequence = 1;
-
         if (lastMatricule != null && !lastMatricule.isEmpty()) {
             try {
                 if (lastMatricule.matches("^\\d{4}EMP\\d{3}$")) {
                     int yearFromLastMatricule = Integer.parseInt(lastMatricule.substring(0, 2));
                     int monthFromLastMatricule = Integer.parseInt(lastMatricule.substring(2, 4));
                     int sequenceFromLastMatricule = Integer.parseInt(lastMatricule.substring(7));
-
                     logger.debug("Parsed Year: {}, Month: {}, Sequence: {}", yearFromLastMatricule, monthFromLastMatricule, sequenceFromLastMatricule);
-
                     if (yearFromLastMatricule == currentYearShort && monthFromLastMatricule == currentMonth) {
                         nextSequence = sequenceFromLastMatricule + 1;
                     } else {

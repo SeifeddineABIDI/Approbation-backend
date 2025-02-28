@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import tn.esprit.pfe.approbation.entities.LeaveRequest;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,8 +24,8 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
             " :endDate BETWEEN lr.startDate AND lr.endDate OR " +
             " lr.startDate BETWEEN :startDate AND :endDate)")
     List<LeaveRequest> findOverlappingLeaveRequests(@Param("userId") String matricule,
-                                                    @Param("startDate") LocalDate startDate,
-                                                    @Param("endDate") LocalDate endDate);
+                                                    @Param("startDate") LocalDateTime startDate,
+                                                    @Param("endDate") LocalDateTime endDate);
     List<LeaveRequest> findAll();
 
     @Query("SELECT l FROM LeaveRequest l " +
@@ -43,8 +44,10 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
 
 
     LeaveRequest findByProcInstId(String processInstanceId);
-
-
-
+    List<LeaveRequest> findByUserMatriculeAndStartDateBetween(String userMatricule, LocalDateTime start, LocalDateTime end);
+    @Query("SELECT lr FROM LeaveRequest lr WHERE (LOWER(lr.user.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(lr.user.lastName) LIKE LOWER(CONCAT('%', :query, '%'))) AND lr.type.name = :type")
+    Page<LeaveRequest> searchRequestsByQueryAndType(@Param("query") String query, @Param("type") String type, Pageable pageable);
+    @Query("SELECT lr FROM LeaveRequest lr WHERE lr.type.name = :type")
+    Page<LeaveRequest> findByTypeName(@Param("type") String type, Pageable pageable);
 
 }

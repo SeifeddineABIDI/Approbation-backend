@@ -37,6 +37,7 @@ public class AdminController {
     @Autowired
     private LeaveRequestRepository leaveRequestRepository;
     private static final Logger log = LoggerFactory.getLogger(AdminController.class);
+
     @GetMapping("/all")
     @PreAuthorize("hasAuthority('admin:read')")
     public ResponseEntity<List<UserDto>> getUsers() {
@@ -48,6 +49,7 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
     @GetMapping("/managers")
     @PreAuthorize("hasAuthority('admin:read')")
     public ResponseEntity<List<ManagerDto>> getManagers() {
@@ -58,6 +60,7 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
     @GetMapping("/getUserByMat/{matricule}")
     public UserDto getUserByMatricule(@PathVariable String matricule) {
         try {
@@ -72,7 +75,6 @@ public class AdminController {
         }
     }
 
-
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('admin:read')")
     public ResponseEntity<List<UserDto>> searchUsers(
@@ -83,6 +85,7 @@ public class AdminController {
         List<UserDto> users = gestionUser.searchUsers(firstName, lastName, email, matricule);
         return ResponseEntity.ok(users);
     }
+
     @Transactional
     @PutMapping("/update/{userId}")
     @PreAuthorize("hasAuthority('admin:update')")
@@ -95,6 +98,7 @@ public class AdminController {
         UserDto updatedUser = gestionUser.updateUser(userId, userDto, imageFile);
         return ResponseEntity.ok(updatedUser);
     }
+
     @Transactional
     @DeleteMapping("/delete/{userId}")
     @CrossOrigin(origins = "http://localhost:4200")
@@ -110,24 +114,25 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
     @GetMapping("/request/all")
     public ResponseEntity<Page<LeaveRequest>> getRequests(
             @RequestParam(required = false) String query,
-            @RequestParam(required = false) String sortField, // Add sortField parameter
-            @RequestParam(required = false) String sortDirection, // Add sortDirection parameter
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortDirection,
+            @RequestParam(required = false) String type,
             Pageable pageable) {
-
         if (sortField != null && sortDirection != null) {
             Sort.Direction direction = Sort.Direction.fromString(sortDirection);
             pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(direction, sortField));
         }
-
-        if (query != null && !query.isEmpty()) {
+        if (query != null && !query.isEmpty() && type != null && !type.isEmpty()) {
+            return ResponseEntity.ok(leaveRequestRepository.searchRequestsByQueryAndType(query, type, pageable));
+        } else if (query != null && !query.isEmpty()) {
             return ResponseEntity.ok(leaveRequestRepository.searchRequests(query, pageable));
+        } else if (type != null && !type.isEmpty()) {
+            return ResponseEntity.ok(leaveRequestRepository.findByTypeName(type, pageable));
         }
-
         return ResponseEntity.ok(leaveRequestRepository.findAll(pageable));
     }
-
-
 }

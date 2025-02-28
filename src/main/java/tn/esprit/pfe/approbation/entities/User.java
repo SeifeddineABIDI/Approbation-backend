@@ -54,6 +54,9 @@ public class User implements UserDetails {
     @JsonIgnoreProperties({"password", "soldeConge", "onLeave", "manager","leaveRequests"})
     private User manager;
 
+    private Integer soldeAutorisation=2;
+    private Integer occurAutorisation=2;
+
     public void setSoldeConge(double soldeConge) {
         this.soldeConge = soldeConge;
     }

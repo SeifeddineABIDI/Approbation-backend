@@ -14,7 +14,6 @@ import tn.esprit.pfe.approbation.entities.User;
 @AllArgsConstructor
 @Entity
 public class Token {
-
     @Id
     @GeneratedValue
     public Integer id;

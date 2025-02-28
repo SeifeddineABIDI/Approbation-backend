@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import tn.esprit.pfe.approbation.dtos.AuthorizationRequestDto;
 import tn.esprit.pfe.approbation.dtos.LeaveRequestDto;
 import tn.esprit.pfe.approbation.dtos.UserDto;
 import tn.esprit.pfe.approbation.entities.LeaveRequest;
@@ -48,6 +49,11 @@ public class UserController {
         String response = leaveService.handleLeaveRequest(request);
         return ResponseEntity.ok(response);
     }
+    @PostMapping("/requestAuthorization")
+    public ResponseEntity<String> requestAutorisation(@RequestBody AuthorizationRequestDto request) {
+        String response = leaveService.handleAuthorizationRequest(request);
+        return ResponseEntity.ok(response);
+    }
 
     @GetMapping("/requests/all/{userId}")
     public List<LeaveRequest> getRequests(@PathVariable String userId) {
@@ -62,7 +68,6 @@ public class UserController {
     @CrossOrigin(origins = "http://localhost:4200")
     @GetMapping("/{userId}/image")
     public ResponseEntity<byte[]> getUserImage(@PathVariable Integer userId) {
-        // Retrieve user by ID
         Optional<User> user = userRepository.findById(userId);
         if (user == null || user.get() == null) {
             return ResponseEntity.notFound().build();
@@ -145,5 +150,6 @@ public class UserController {
                     .body(null);
         }
     }
+
 
 }

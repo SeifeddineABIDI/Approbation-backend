@@ -3,6 +3,7 @@ package tn.esprit.pfe.approbation.dtos;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Data
@@ -13,12 +14,12 @@ public class TaskDTO {
     private String processInstanceId;
     private String assignee;
     private String requester;
-    private LocalDate startDate;
-    private LocalDate endDate;
+    private LocalDateTime startDate;
+    private LocalDateTime endDate;
     private Date createDate;
 
     public TaskDTO(String taskId, String taskName, String processInstanceId, String assignee,
-                   String requester, LocalDate startDate, LocalDate endDate,Date createDate) {
+                   String requester, LocalDateTime startDate, LocalDateTime endDate,Date createDate) {
         this.taskId = taskId;
         this.taskName = taskName;
         this.processInstanceId = processInstanceId;
@@ -54,11 +55,11 @@ public class TaskDTO {
         return requester;
     }
     public void setRequester(String requester) {}
-    public LocalDate getStartDate() {
+    public LocalDateTime getStartDate() {
         return startDate;
     }
     public void setStartDate(LocalDate startDate) {}
-    public LocalDate getEndDate() {
+    public LocalDateTime getEndDate() {
         return endDate;
     }
     public void setEndDate(LocalDate endDate) {}
