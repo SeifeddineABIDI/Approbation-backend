@@ -197,14 +197,14 @@ public class GestionUserImpl implements IGestionUser {
     }
     public List<LeaveRequest> getTeamLeaves(User authenticatedUser) {
         List<User> team;
-        if (authenticatedUser.getRole().equals("MANAGER")) {
+        if (authenticatedUser.getRole().toString()=="MANAGER") {
             team = getUsersByManager(authenticatedUser);
         } else {
             User manager = authenticatedUser.getManager();
             if (manager != null) {
                 team = getUsersByManager(manager);
             } else {
-                team = List.of(); // Empty list if no manager
+                team = List.of();
             }
         }
         return leaveRequestRepository.findByUserIn(team);
