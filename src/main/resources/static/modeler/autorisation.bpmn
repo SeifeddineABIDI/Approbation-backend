@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0rphufn" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.30.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.22.0">
+  <bpmn:collaboration id="Collaboration_04k08ns">
+    <bpmn:participant id="DemandeDautorisationParticipant" name="Demande d&#39;autorisation" processRef="Process_03gv9fu" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_03gv9fu" isExecutable="true" camunda:historyTimeToLive="30">
+    <bpmn:startEvent id="DebutStartEvent" name="Debut">
+      <bpmn:outgoing>Flow_00o6g42</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="DemandeAutorisationTask" name="Demande autorisation">
+      <bpmn:incoming>Flow_00o6g42</bpmn:incoming>
+      <bpmn:outgoing>Flow_06n42c4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_0trp5dt">
+      <bpmn:incoming>Flow_06n42c4</bpmn:incoming>
+      <bpmn:outgoing>Flow_1k1xm8h</bpmn:outgoing>
+      <bpmn:outgoing>Flow_04pkwzs</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="Event_10silim">
+      <bpmn:incoming>Flow_1k1xm8h</bpmn:incoming>
+      <bpmn:incoming>Flow_0htc5ap</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_00o6g42" sourceRef="DebutStartEvent" targetRef="DemandeAutorisationTask" />
+    <bpmn:sequenceFlow id="Flow_06n42c4" sourceRef="DemandeAutorisationTask" targetRef="Gateway_0trp5dt" />
+    <bpmn:sequenceFlow id="Flow_1k1xm8h" sourceRef="Gateway_0trp5dt" targetRef="Event_10silim">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">#{leaveApproved==false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_04pkwzs" sourceRef="Gateway_0trp5dt" targetRef="Activity_1q6rmf5">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">#{leaveApproved==true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0htc5ap" sourceRef="Activity_1q6rmf5" targetRef="Event_10silim" />
+    <bpmn:serviceTask id="Activity_1q6rmf5" name="Update autorisation" camunda:class="tn.esprit.pfe.approbation.delegate.UpdateAutorisation">
+      <bpmn:extensionElements />
+      <bpmn:incoming>Flow_04pkwzs</bpmn:incoming>
+      <bpmn:outgoing>Flow_0htc5ap</bpmn:outgoing>
+    </bpmn:serviceTask>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_04k08ns">
+      <bpmndi:BPMNShape id="Participant_0qa5wwc_di" bpmnElement="DemandeDautorisationParticipant" isHorizontal="true" bioc:fill="#eaf1b5" color:background-color="#eaf1b5">
+        <dc:Bounds x="180" y="80" width="1070" height="290" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0gbw87c_di" bpmnElement="DebutStartEvent" bioc:fill="#df2cf1" color:background-color="#df2cf1">
+        <dc:Bounds x="252" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="255" y="185" width="30" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0r5j22d_di" bpmnElement="DemandeAutorisationTask" bioc:stroke="#fb8c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#fb8c00">
+        <dc:Bounds x="420" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0trp5dt_di" bpmnElement="Gateway_0trp5dt" isMarkerVisible="true" bioc:fill="#2cd3f1" color:background-color="#2cd3f1">
+        <dc:Bounds x="605" y="135" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_10silim_di" bpmnElement="Event_10silim" bioc:stroke="#8e24aa" bioc:fill="#e1bee7" color:background-color="#e1bee7" color:border-color="#8e24aa">
+        <dc:Bounds x="1132" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_02lzzne_di" bpmnElement="Activity_1q6rmf5" bioc:stroke="#fb8c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#fb8c00">
+        <dc:Bounds x="830" y="250" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_00o6g42_di" bpmnElement="Flow_00o6g42">
+        <di:waypoint x="288" y="160" />
+        <di:waypoint x="420" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_06n42c4_di" bpmnElement="Flow_06n42c4">
+        <di:waypoint x="520" y="160" />
+        <di:waypoint x="605" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1k1xm8h_di" bpmnElement="Flow_1k1xm8h" bioc:stroke="#e53935" color:border-color="#e53935">
+        <di:waypoint x="655" y="160" />
+        <di:waypoint x="1132" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_04pkwzs_di" bpmnElement="Flow_04pkwzs" bioc:stroke="#43a047" color:border-color="#43a047">
+        <di:waypoint x="630" y="185" />
+        <di:waypoint x="630" y="290" />
+        <di:waypoint x="830" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0htc5ap_di" bpmnElement="Flow_0htc5ap">
+        <di:waypoint x="930" y="290" />
+        <di:waypoint x="1150" y="290" />
+        <di:waypoint x="1150" y="178" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

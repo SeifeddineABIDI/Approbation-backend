@@ -9,9 +9,11 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import tn.esprit.pfe.approbation.dtos.ManagerDto;
 import tn.esprit.pfe.approbation.dtos.UserDto;
+import tn.esprit.pfe.approbation.entities.LeaveRequest;
 import tn.esprit.pfe.approbation.entities.Role;
 import tn.esprit.pfe.approbation.entities.User;
 import tn.esprit.pfe.approbation.entities.UserSpecification;
+import tn.esprit.pfe.approbation.repositories.LeaveRequestRepository;
 import tn.esprit.pfe.approbation.repositories.UserRepository;
 
 import java.io.IOException;
@@ -37,6 +39,8 @@ public class GestionUserImpl implements IGestionUser {
     private static final Logger logger = LoggerFactory.getLogger(GestionUserImpl.class);
     @Autowired
     private TokenRepository tokenRepository;
+    @Autowired
+    private LeaveRequestRepository leaveRequestRepository;
 
     @Override
     public List<User> findAll() {
@@ -190,5 +194,19 @@ public class GestionUserImpl implements IGestionUser {
     }
     public List<User> getUsersByManager(User manager) {
         return userRepository.findByManager(manager);
+    }
+    public List<LeaveRequest> getTeamLeaves(User authenticatedUser) {
+        List<User> team;
+        if (authenticatedUser.getRole().equals("MANAGER")) {
+            team = getUsersByManager(authenticatedUser);
+        } else {
+            User manager = authenticatedUser.getManager();
+            if (manager != null) {
+                team = getUsersByManager(manager);
+            } else {
+                team = List.of(); // Empty list if no manager
+            }
+        }
+        return leaveRequestRepository.findByUserIn(team);
     }
 }

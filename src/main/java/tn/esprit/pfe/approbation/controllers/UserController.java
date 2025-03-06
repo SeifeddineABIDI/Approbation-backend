@@ -30,7 +30,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @RestController
-@CrossOrigin("*")
+@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*", allowCredentials = "true", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
 @RequestMapping("/api/v1/management")
 @Tag(name = "Management")
 
@@ -134,12 +134,9 @@ public class UserController {
             return ResponseEntity.ok(team);
         } else if (authenticatedUser.getRole() != Role.MANAGER) {
             User manager = authenticatedUser.getManager();
-
             if (manager != null) {
                 List<User> teamMembers = gestionUser.getUsersByManager(manager);
-
                 teamMembers.remove(authenticatedUser);
-
                 return ResponseEntity.ok(teamMembers);
             } else {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -150,6 +147,15 @@ public class UserController {
                     .body(null);
         }
     }
+    @GetMapping("/leaves")
+    public ResponseEntity<List<LeaveRequest>> getTeamLeaves(
+            @AuthenticationPrincipal User authenticatedUser) {
+        if (authenticatedUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        }
 
+        List<LeaveRequest> teamLeaves = gestionUser.getTeamLeaves(authenticatedUser);
+        return ResponseEntity.ok(teamLeaves);
+    }
 
 }

@@ -3,6 +3,7 @@ package tn.esprit.pfe.approbation.services;
 import org.springframework.web.multipart.MultipartFile;
 import tn.esprit.pfe.approbation.dtos.ManagerDto;
 import tn.esprit.pfe.approbation.dtos.UserDto;
+import tn.esprit.pfe.approbation.entities.LeaveRequest;
 import tn.esprit.pfe.approbation.entities.User;
 
 import java.util.List;
@@ -15,4 +16,5 @@ public interface IGestionUser {
     public UserDto updateUser(Integer userId, UserDto userDto, MultipartFile imageFile);
     public void deleteUser(Integer userId);
     public List<User> getUsersByManager(User manager);
+    public List<LeaveRequest> getTeamLeaves(User authenticatedUser);
     }

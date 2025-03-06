@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import tn.esprit.pfe.approbation.entities.LeaveRequest;
+import tn.esprit.pfe.approbation.entities.User;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -49,5 +50,5 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
     Page<LeaveRequest> searchRequestsByQueryAndType(@Param("query") String query, @Param("type") String type, Pageable pageable);
     @Query("SELECT lr FROM LeaveRequest lr WHERE lr.type.name = :type")
     Page<LeaveRequest> findByTypeName(@Param("type") String type, Pageable pageable);
-
+    List<LeaveRequest> findByUserIn(List<User> users);
 }
