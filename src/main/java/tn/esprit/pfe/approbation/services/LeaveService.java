@@ -26,6 +26,7 @@ import tn.esprit.pfe.approbation.dtos.AuthorizationRequestDto;
 import tn.esprit.pfe.approbation.dtos.LeaveRequestDto;
 import tn.esprit.pfe.approbation.dtos.TaskDetailsDto;
 import tn.esprit.pfe.approbation.entities.LeaveRequest;
+import tn.esprit.pfe.approbation.entities.Notification;
 import tn.esprit.pfe.approbation.entities.User;
 import tn.esprit.pfe.approbation.repositories.LeaveRequestRepository;
 import tn.esprit.pfe.approbation.repositories.TypeCongeRepository;
@@ -57,6 +58,8 @@ public class LeaveService {
     private HistoryService historyService;
     @Autowired
     private TypeCongeRepository typeCongeRepository;
+    @Autowired
+    private NotificationService notificationService;
 
     public String handleLeaveRequest(LeaveRequestDto request) {
         User user = userRepository.findByMatricule(request.getUserId());
@@ -182,6 +185,18 @@ public class LeaveService {
         User user = userRepository.findByMatricule(task.getOwner());
         User manager = user.getManager();
         System.out.println("leaveApproved: " + leaveApproved + "");
+        Notification notification = new Notification();
+        notification.setUserId(task.getOwner());
+        notification.setTitle("Leave Request " + (leaveApproved ? "Approved" : "Rejected"));
+        notification.setDescription("Your leave request from " + startDate.toString() + " to " + endDate.toString() +
+                " has been " + (leaveApproved ? "approved" : "rejected") + " by your manager." +
+                (comments != null && !comments.isEmpty() ? " Comments: " + comments : ""));
+        notification.setTime(LocalDateTime.now().toString());
+        notification.setRead(false);
+        notification.setLink("/leave-requests/" + leaveRequestId);
+        notification.setUseRouter(true);
+        notificationService.createNotification(notification);
+
         if (!leaveApproved) {
             sendEmailNotification(leaveApproved, comments, user.getEmail(), user.getFirstName() + " " + user.getLastName());
             LeaveRequest leaveRequest = leaveRequestRepository.findByProcInstId(task.getProcessInstanceId());
