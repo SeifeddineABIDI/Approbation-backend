@@ -25,14 +25,11 @@ import tn.esprit.pfe.approbation.repositories.LeaveRequestRepository;
 import tn.esprit.pfe.approbation.repositories.UserRepository;
 import tn.esprit.pfe.approbation.services.LeaveService;
 import tn.esprit.pfe.approbation.services.ReportService;
-
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.time.ZoneId;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -62,22 +59,29 @@ public class TaskController {
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<TaskDTO>> getTasksByUser(@PathVariable String userId) {
         try {
-            TaskQuery taskQuery = taskService.createTaskQuery().taskAssignee(userId);
+            if (userId == null || userId.trim().isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            TaskQuery taskQuery = taskService.createTaskQuery()
+                    .taskAssignee(userId)
+                    .active();
             List<Task> tasks = taskQuery.list();
+            if (tasks.isEmpty()) {
+                return ResponseEntity.ok(Collections.emptyList());
+            }
             List<TaskDTO> taskDTOs = tasks.stream()
                     .map(task -> {
                         Map<String, Object> variables = runtimeService.getVariables(task.getProcessInstanceId());
-                        String requester = (String) variables.get("userId");
+                        if (variables == null || variables.isEmpty()) {
+                            throw new IllegalStateException("No variables found for process instance: " + task.getProcessInstanceId());
+                        }
+                        String requester = Optional.ofNullable(variables.get("userId"))
+                                .map(Object::toString)
+                                .orElseThrow(() -> new IllegalStateException("userId not found in variables"));
                         Object startDateObj = variables.get("startDate");
+                        LocalDateTime startDate = convertToLocalDateTime(startDateObj, "startDate");
                         Object endDateObj = variables.get("endDate");
-                        System.out.println("startDate type: " + startDateObj.getClass().getName());
-                        System.out.println("endDate type: " + endDateObj.getClass().getName());
-                        LocalDateTime startDate = (startDateObj instanceof LocalDate)
-                                ? ((LocalDate) startDateObj).atStartOfDay()
-                                : (LocalDateTime) startDateObj;
-                        LocalDateTime endDate = (endDateObj instanceof LocalDate)
-                                ? ((LocalDate) endDateObj).atStartOfDay()
-                                : (LocalDateTime) endDateObj;
+                        LocalDateTime endDate = convertToLocalDateTime(endDateObj, "endDate");
                         return new TaskDTO(
                                 task.getId(),
                                 task.getName(),
@@ -90,10 +94,30 @@ public class TaskController {
                         );
                     })
                     .collect(Collectors.toList());
+
             return ResponseEntity.ok(taskDTOs);
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    private LocalDateTime convertToLocalDateTime(Object dateObj, String fieldName) {
+        if (dateObj == null) {
+            throw new IllegalStateException(fieldName + " not found in process variables");
+        }
+        try {
+            if (dateObj instanceof LocalDateTime) {
+                return (LocalDateTime) dateObj;
+            } else if (dateObj instanceof LocalDate) {
+                return ((LocalDate) dateObj).atStartOfDay();
+            } else if (dateObj instanceof Date) {
+                return ((Date) dateObj).toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+            } else {
+                throw new IllegalStateException(fieldName + " has unexpected type: " + dateObj.getClass().getName());
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to convert " + fieldName + " to LocalDateTime", e);
         }
     }
 

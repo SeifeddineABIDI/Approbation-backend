@@ -7,6 +7,7 @@ import org.camunda.bpm.engine.HistoryService;
 import org.camunda.bpm.engine.RuntimeService;
 import org.camunda.bpm.engine.TaskService;
 import org.camunda.bpm.engine.history.HistoricTaskInstance;
+import org.camunda.bpm.engine.history.HistoricVariableInstance;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.camunda.bpm.engine.task.Task;
 import org.camunda.bpm.engine.task.TaskQuery;
@@ -184,22 +185,28 @@ public class LeaveService {
         taskService.complete(task.getId(), variables);
         User user = userRepository.findByMatricule(task.getOwner());
         User manager = user.getManager();
+        LeaveRequest leaveRequest = leaveRequestRepository.findByProcInstId(task.getProcessInstanceId());
+        if (leaveRequest.getType().equals("Autorisation")){
+            Notification notification = new Notification();
+            notification.setUserId(task.getOwner());
+            notification.setTitle("Leave Request " + (leaveApproved ? "Approved" : "Rejected"));
+            notification.setDescription("Your leave request from " + startDate.toString() + " to " + endDate.toString() +
+                    " has been " + (leaveApproved ? "approved" : "rejected") + " by your manager." +
+                    (comments != null && !comments.isEmpty() ? " Comments: " + comments : ""));
+            notification.setTime(LocalDateTime.now().toString());
+            notification.setRead(false);
+            notification.setLink("/leave-requests/" + leaveRequestId);
+            notification.setUseRouter(true);
+            notificationService.createNotification(notification);
+            if(leaveApproved){
+                leaveRequest.setApproved(true);
+            }
+        }
         System.out.println("leaveApproved: " + leaveApproved + "");
-        Notification notification = new Notification();
-        notification.setUserId(task.getOwner());
-        notification.setTitle("Leave Request " + (leaveApproved ? "Approved" : "Rejected"));
-        notification.setDescription("Your leave request from " + startDate.toString() + " to " + endDate.toString() +
-                " has been " + (leaveApproved ? "approved" : "rejected") + " by your manager." +
-                (comments != null && !comments.isEmpty() ? " Comments: " + comments : ""));
-        notification.setTime(LocalDateTime.now().toString());
-        notification.setRead(false);
-        notification.setLink("/leave-requests/" + leaveRequestId);
-        notification.setUseRouter(true);
-        notificationService.createNotification(notification);
 
         if (!leaveApproved) {
             sendEmailNotification(leaveApproved, comments, user.getEmail(), user.getFirstName() + " " + user.getLastName());
-            LeaveRequest leaveRequest = leaveRequestRepository.findByProcInstId(task.getProcessInstanceId());
+             leaveRequest = leaveRequestRepository.findByProcInstId(task.getProcessInstanceId());
             if (leaveRequest != null) {
                 leaveRequest.setApproved(false);
                 leaveRequestRepository.save(leaveRequest);
@@ -208,7 +215,7 @@ public class LeaveService {
             }
         }
         if (leaveApproved) {
-            LeaveRequest leaveRequest = leaveRequestRepository.findByProcInstId(task.getProcessInstanceId());
+             leaveRequest = leaveRequestRepository.findByProcInstId(task.getProcessInstanceId());
             leaveRequest.setApproved(true);
             leaveRequestRepository.save(leaveRequest);
             try {
@@ -357,25 +364,37 @@ public class LeaveService {
     }
 
     public List<TaskDetailsDto> getTasksByAssignee(String assignee) {
+        if (assignee == null || assignee.trim().isEmpty()) {
+            throw new IllegalArgumentException("Assignee cannot be null or empty");
+        }
         List<HistoricTaskInstance> tasks = historyService.createHistoricTaskInstanceQuery()
                 .taskAssignee(assignee)
                 .finished()
                 .list();
         tasks.sort(Comparator.comparing(HistoricTaskInstance::getStartTime).reversed());
+        Set<String> processInstanceIds = tasks.stream()
+                .map(HistoricTaskInstance::getProcessInstanceId)
+                .collect(Collectors.toSet());
+
+        Map<String, Object> variables = historyService.createHistoricVariableInstanceQuery()
+                .processInstanceIdIn(processInstanceIds.toArray(new String[0]))
+                .variableName("leaveApproved")
+                .list()
+                .stream()
+                .collect(Collectors.toMap(
+                        HistoricVariableInstance::getProcessInstanceId,
+                        HistoricVariableInstance::getValue,
+                        (v1, v2) -> v1  // Keep first value in case of duplicates
+                ));
+
+        // Transform tasks to DTOs
         return tasks.stream()
                 .map(task -> {
-                    String processInstanceId = task.getProcessInstanceId();
-                    boolean processInstanceExists = runtimeService.createExecutionQuery()
-                            .processInstanceId(processInstanceId)
-                            .singleResult() != null;
-                    Boolean leaveApproved = false;
-                    if (processInstanceExists) {
-                        Map<String, Object> processVariables = runtimeService.getVariables(processInstanceId);
-                        leaveApproved = (Boolean) processVariables.get("leaveApproved");
-                        if (leaveApproved == null) {
-                            leaveApproved = false;
-                        }
-                    }
+                    Boolean leaveApproved = Optional.ofNullable(variables.get(task.getProcessInstanceId()))
+                            .filter(Boolean.class::isInstance)
+                            .map(Boolean.class::cast)
+                            .orElse(false);
+
                     return new TaskDetailsDto(
                             task.getId(),
                             task.getProcessInstanceId(),
