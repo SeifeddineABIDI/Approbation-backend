@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import tn.esprit.pfe.approbation.dtos.AuthorizationRequestDto;
 import tn.esprit.pfe.approbation.dtos.LeaveRequestDto;
 import tn.esprit.pfe.approbation.dtos.UserDto;
+import tn.esprit.pfe.approbation.dtos.UserFullNameDto;
 import tn.esprit.pfe.approbation.entities.LeaveRequest;
 import tn.esprit.pfe.approbation.entities.Role;
 import tn.esprit.pfe.approbation.entities.User;
@@ -157,5 +158,16 @@ public class UserController {
         List<LeaveRequest> teamLeaves = gestionUser.getTeamLeaves(authenticatedUser);
         return ResponseEntity.ok(teamLeaves);
     }
-
+    @PutMapping("/updateName/{matricule}")
+    public ResponseEntity<User>updateName(@PathVariable("matricule") String matricule, @RequestBody UserFullNameDto userFullNameDto)
+    {
+        User user = userRepository.findByMatricule(matricule);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        user.setFirstName(userFullNameDto.getFirstName());
+        user.setLastName(userFullNameDto.getLastName());
+        userRepository.save(user);
+        return ResponseEntity.ok(user);
+    }
 }
