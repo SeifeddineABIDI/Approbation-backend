@@ -43,7 +43,8 @@ public class AuthenticationController {
     EmailService emailService;
     @Autowired
     private PasswordEncoder passwordEncoder;
-
+    @Autowired
+    private final RecaptchaService recaptchaService;
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse> register(
             @RequestParam("firstname") String firstname,
@@ -77,7 +78,16 @@ public class AuthenticationController {
             @RequestBody AuthenticationRequest request,
             HttpServletRequest httpRequest
     ) {
-        return ResponseEntity.ok(service.authenticate(request,httpRequest));
+        System.out.println("Received Request: " + request);
+        if (request.getRecaptchaToken() == null || !recaptchaService.verifyRecaptcha(request.getRecaptchaToken())) {
+            System.out.println("reCAPTCHA failed for token: " + request.getRecaptchaToken());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(AuthenticationResponse.builder()
+                            .error("reCAPTCHA verification failed")
+                            .build());
+        }
+        AuthenticationResponse response = service.authenticate(request, httpRequest);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/refresh-token")

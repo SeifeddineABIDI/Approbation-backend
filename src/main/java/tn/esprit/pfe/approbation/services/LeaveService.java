@@ -115,6 +115,16 @@ public class LeaveService {
             ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("Process_0d8lhc1", variables);
             leaveRequest.setProcInstId(processInstance.getProcessInstanceId());
             leaveRequestRepository.save(leaveRequest);
+            Notification notification = new Notification();
+            notification.setUserId(manager.getMatricule());
+            notification.setTitle("New Request submitted");
+            notification.setDescription("New leave request from " + user.getFirstName()+ " "+user.getLastName());
+            notification.setTime(LocalDateTime.now().toString());
+            notification.setRead(false);
+            notification.setLink("/requests/confirmList");
+            notification.setUseRouter(true);
+            notificationService.createNotification(notification);
+
             List<Task> tasks = taskService.createTaskQuery().processInstanceId(processInstance.getId()).list();
             for (Task tas : tasks) {
                 taskService.setOwner(tas.getId(), request.getUserId());
@@ -186,7 +196,7 @@ public class LeaveService {
         User user = userRepository.findByMatricule(task.getOwner());
         User manager = user.getManager();
         LeaveRequest leaveRequest = leaveRequestRepository.findByProcInstId(task.getProcessInstanceId());
-        if (leaveRequest.getType().equals("Autorisation")){
+
             Notification notification = new Notification();
             notification.setUserId(task.getOwner());
             notification.setTitle("Leave Request " + (leaveApproved ? "Approved" : "Rejected"));
@@ -195,13 +205,13 @@ public class LeaveService {
                     (comments != null && !comments.isEmpty() ? " Comments: " + comments : ""));
             notification.setTime(LocalDateTime.now().toString());
             notification.setRead(false);
-            notification.setLink("/leave-requests/" + leaveRequestId);
+            notification.setLink("/requests/all");
             notification.setUseRouter(true);
             notificationService.createNotification(notification);
             if(leaveApproved){
                 leaveRequest.setApproved(true);
             }
-        }
+
         System.out.println("leaveApproved: " + leaveApproved + "");
 
         if (!leaveApproved) {
@@ -240,6 +250,7 @@ public class LeaveService {
                 Task rhTask = rhTasks.get(0);
                 taskService.setOwner(rhTask.getId(), task.getOwner());
             }
+
         }
     }
 

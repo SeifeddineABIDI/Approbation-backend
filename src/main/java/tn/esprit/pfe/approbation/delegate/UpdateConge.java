@@ -13,6 +13,10 @@ import tn.esprit.pfe.approbation.entities.User;
 import tn.esprit.pfe.approbation.repositories.UserRepository;
 import org.thymeleaf.context.Context;
 
+import java.time.DayOfWeek;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+
 @Component
 public class UpdateConge implements JavaDelegate {
     @Autowired
@@ -25,24 +29,45 @@ public class UpdateConge implements JavaDelegate {
     @Override
     public void execute(DelegateExecution execution) throws Exception {
         String userId = (String) execution.getVariable("userId");
-        Long daysRequestedLong = (Long) execution.getVariable("daysRequested");
-        int daysRequested = daysRequestedLong.intValue();
+        LocalDateTime startDate = (LocalDateTime) execution.getVariable("startDate");
+        LocalDateTime endDate = (LocalDateTime) execution.getVariable("endDate");
         boolean leaveApproved = (boolean) execution.getVariable("leaveApproved");
         String refusalComment = (String) execution.getVariable("refusalComment");
+
         User user = userRepository.findByMatricule(userId);
         if (user == null) {
             throw new Exception("User not found");
         }
-        if (leaveApproved) {
-            user.setSoldeConge(user.getSoldeConge() - daysRequested);
-            userRepository.save(user);
 
+        // Calculate working days excluding Saturdays and Sundays
+        int workingDays = calculateWorkingDays(startDate, endDate);
+
+        if (leaveApproved) {
+            user.setSoldeConge(user.getSoldeConge() - workingDays);
+            userRepository.save(user);
+            sendEmail(user.getEmail(), user.getFirstName(), "approved", "Your leave request has been approved.");
         }
         if (!leaveApproved && refusalComment != null && !refusalComment.isEmpty()) {
             System.out.println("Refusal comment: " + refusalComment);
-
+            sendEmail(user.getEmail(), user.getFirstName(), "rejected", "Reason: " + refusalComment);
         }
+
         execution.setVariable("leaveApproved", leaveApproved);
+    }
+
+    private int calculateWorkingDays(LocalDateTime startDate, LocalDateTime endDate) {
+        int workingDays = 0;
+        LocalDateTime currentDate = startDate.toLocalDate().atStartOfDay(); // Start at midnight of the start date
+
+        while (!currentDate.isAfter(endDate)) {
+            DayOfWeek dayOfWeek = currentDate.getDayOfWeek();
+            if (dayOfWeek != DayOfWeek.SATURDAY && dayOfWeek != DayOfWeek.SUNDAY) {
+                workingDays++;
+            }
+            currentDate = currentDate.plusDays(1);
+        }
+
+        return workingDays;
     }
 
     public void sendEmail(String to, String userName, String status, String message) throws MessagingException {
