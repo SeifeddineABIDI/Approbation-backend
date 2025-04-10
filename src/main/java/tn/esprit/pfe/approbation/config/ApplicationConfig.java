@@ -50,8 +50,5 @@ public class ApplicationConfig {
         return new RestTemplate();
     }
 
-    @Bean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
-    }
+
 }
