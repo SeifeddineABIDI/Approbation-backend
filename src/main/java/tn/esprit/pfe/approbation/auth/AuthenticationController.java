@@ -79,15 +79,34 @@ public class AuthenticationController {
             HttpServletRequest httpRequest
     ) {
         System.out.println("Received Request: " + request);
-        if (request.getRecaptchaToken() == null || !recaptchaService.verifyRecaptcha(request.getRecaptchaToken())) {
-            System.out.println("reCAPTCHA failed for token: " + request.getRecaptchaToken());
+
+        // Check if reCAPTCHA token is present and valid
+        if (request.getRecaptchaToken() == null || request.getRecaptchaToken().isEmpty()) {
+            System.out.println("reCAPTCHA token is missing");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(AuthenticationResponse.builder()
+                            .error("reCAPTCHA token is required")
+                            .build());
+        }
+
+        if (!recaptchaService.verifyRecaptcha(request.getRecaptchaToken())) {
+            System.out.println("reCAPTCHA verification failed for token: " + request.getRecaptchaToken());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(AuthenticationResponse.builder()
                             .error("reCAPTCHA verification failed")
                             .build());
         }
-        AuthenticationResponse response = service.authenticate(request, httpRequest);
-        return ResponseEntity.ok(response);
+
+        try {
+            AuthenticationResponse response = service.authenticate(request, httpRequest);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.err.println("Authentication failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(AuthenticationResponse.builder()
+                            .error("Authentication failed: " + e.getMessage())
+                            .build());
+        }
     }
 
     @PostMapping("/refresh-token")

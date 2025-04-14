@@ -28,9 +28,8 @@ public class RecaptchaService {
             System.out.println("reCAPTCHA response: " + response);
             JsonNode jsonNode = objectMapper.readTree(response);
             boolean success = jsonNode.get("success").asBoolean();
-            double score = jsonNode.get("score").asDouble();
-            System.out.println("Success: " + success + ", Score: " + score);
-            return success && score >= 0.5;
+            System.out.println("reCAPTCHA verification success: " + success);
+            return success;
         } catch (Exception e) {
             System.err.println("reCAPTCHA verification failed: " + e.getMessage());
             return false;
