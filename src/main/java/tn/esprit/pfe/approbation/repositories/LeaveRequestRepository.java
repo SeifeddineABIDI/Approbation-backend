@@ -1,6 +1,7 @@
 package tn.esprit.pfe.approbation.repositories;
 
 import org.apache.ibatis.annotations.Param;
+import org.camunda.feel.syntaxtree.In;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -51,4 +52,8 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
     @Query("SELECT lr FROM LeaveRequest lr WHERE lr.type.name = :type")
     Page<LeaveRequest> findByTypeName(@Param("type") String type, Pageable pageable);
     List<LeaveRequest> findByUserIn(List<User> users);
+    List<LeaveRequest> findByUserInAndApproved(List<User> users, Boolean approved);
+    List<LeaveRequest> findByUserId(Integer userId);
+    List<LeaveRequest> findByStartDateBetween(LocalDateTime start, LocalDateTime end);
+    List<LeaveRequest> findByApproved(Boolean approved);
 }

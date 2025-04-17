@@ -207,6 +207,6 @@ public class GestionUserImpl implements IGestionUser {
                 team = List.of();
             }
         }
-        return leaveRequestRepository.findByUserIn(team);
+        return leaveRequestRepository.findByUserInAndApproved(team,true);
     }
 }
