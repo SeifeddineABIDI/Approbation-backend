@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.20.6.final using JasperReports Library version 6.20.6-5c96b6aa8a39ac1dc6b6bea4b81168e16dd39231  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="avis_conge_report" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="f0555218-1350-411d-b940-cc4a51d1070c">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
+	<parameter name="ManagerName" class="java.lang.String"/>
+	<parameter name="EmployeeName" class="java.lang.String"/>
+	<parameter name="nbDays" class="java.lang.String"/>
+	<parameter name="allText" class="java.lang.String">
+		<defaultValueExpression><![CDATA[$P{allText}]]></defaultValueExpression>
+	</parameter>
+	<parameter name="taskDate" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[]]>
+	</queryString>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="129" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="50" width="555" height="79" uuid="882f9962-2239-4294-8bcd-651ec0269366">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="26" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Avis de congé]]></text>
+			</staticText>
+			<image>
+				<reportElement x="0" y="0" width="110" height="50" uuid="d74288dc-996a-41b4-80c9-11b4d782f8d5"/>
+				<imageExpression><![CDATA["D:/Projects/Approbation/src/main/resources/templates/siga.png"]]></imageExpression>
+			</image>
+		</band>
+	</title>
+	<detail>
+		<band height="376" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="70" width="555" height="210" uuid="4bc8f705-9dfb-496d-9ff1-1df7daa24f85"/>
+				<textElement>
+					<font size="16"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{allText}]]></textFieldExpression>
+			</textField>
+			<textField pattern="MMMMM dd, yyyy">
+				<reportElement x="360" y="10" width="184" height="30" uuid="3195aa3a-c9b5-40d1-9054-3e4fb0bb2809"/>
+				<textElement>
+					<font size="14" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="50" y="306" width="100" height="30" uuid="fd10d1dd-74f9-449b-bc48-cbe77d92536d"/>
+				<textElement>
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{taskDate}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="306" width="50" height="30" uuid="dac381cd-0d1c-4227-beab-f37417b5552b"/>
+				<textElement textAlignment="Center" markup="none">
+					<font size="12"/>
+				</textElement>
+				<text><![CDATA[Tunis, le]]></text>
+			</staticText>
+			<image>
+				<reportElement x="0" y="326" width="119" height="50" uuid="f2449c3f-dee6-47d6-8ba1-b9bf68b60362"/>
+				<imageExpression><![CDATA["D:/Projects/Approbation/src/main/resources/templates/Signature.png"]]></imageExpression>
+			</image>
+			<textField>
+				<reportElement x="0" y="286" width="110" height="20" uuid="b922fd5a-f1bf-44f6-8733-324d28af1487"/>
+				<textElement>
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{ManagerName}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="95" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="555" height="86" uuid="18c1d083-0562-45e2-93ea-cb5db05ebe64"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[NB:
+* La durée totale du congé ne doit pas dépasser 30 jours consécutifs sans l'approbation explicite du responsable hiérarchique.
+* Les congés ne peuvent être pris que pendant les périodes où l'activité de l'entreprise le permet.
+* Toute demande de congé doit être soumise au moins 15 jours avant la date de début prévue, sauf en cas d'urgence.
+]]></text>
+			</staticText>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="88" splitType="Stretch"/>
+	</summary>
+</jasperReport>
