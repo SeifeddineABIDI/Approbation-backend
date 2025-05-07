@@ -3,15 +3,18 @@ name: Backend Pipeline
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Set up JDK
-        uses: actions/setup-java@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -19,33 +22,39 @@ jobs:
       - name: Build with Maven
         run: mvn clean package -DskipTests
 
+      - name: Run tests
+        run: mvn test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push Docker image
         run: |
-          # Build with cache from Docker Hub
           docker buildx build \
             --platform linux/amd64 \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/approbation-backend:${{ github.sha }} \
             -t ${{ secrets.DOCKERHUB_USERNAME }}/approbation-backend:latest \
-            --push .  docker push ${{ secrets.DOCKERHUB_USERNAME }}/approbation-backend:latest
+            --push .
 
-      - name: Update Kubernetes manifests
+      - name: Checkout k8s-manifests repository
         uses: actions/checkout@v4
         with:
           repository: SeifeddineABIDI/k8s-manifests
           path: manifests
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_PAT }}
 
       - name: Update image tag
         run: |
-          sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/approbation-backend:latest|" manifests/backend/deployment.yaml
+          sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/approbation-backend:${{ github.sha }}|" manifests/backend/deployment.yaml
           cd manifests
           git config user.name "seifeddineAbidi"
           git config user.email "seifeddine.abidi@esprit.tn"
           git add .
-          git commit -m "Update backend image"
+          git commit -m "Update backend image to ${{ github.sha }}"
           git push
