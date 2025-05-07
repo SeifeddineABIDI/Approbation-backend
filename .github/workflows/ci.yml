@@ -47,7 +47,7 @@ jobs:
         with:
           repository: SeifeddineABIDI/k8s-manifests
           path: manifests
-          token: ${{ secrets.GITHUB_PAT }}
+          token: ${{ secrets.GH_PAT }}
 
       - name: Update image tag
         run: |
