@@ -56,5 +56,9 @@ jobs:
           git config user.name "seifeddineAbidi"
           git config user.email "seifeddine.abidi@esprit.tn"
           git add .
-          git commit -m "Update backend image to ${{ github.sha }}"
-          git push
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update backend image to ${{ github.sha }}"
+            git push
+          fi
