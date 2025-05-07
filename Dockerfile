@@ -1,42 +1,18 @@
 # Stage 1: Build the application
-FROM maven:3.8.6-openjdk-17 AS builder
+FROM maven:3.8.7-eclipse-temurin-17 AS builder
 
-# Set working directory
 WORKDIR /app
-
-# Copy Maven configuration and download dependencies (cache layer)
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
+RUN mvn dependency:go-offline
 
-# Copy source code and build the application
 COPY src ./src
-RUN mvn clean package -DskipTests
+RUN mvn package -DskipTests
 
-# Stage 2: Create the runtime image
-FROM openjdk:17-jre-slim
+# Stage 2: Create runtime image
+FROM eclipse-temurin:17-jre-jammy
 
-# Set working directory
 WORKDIR /app
+COPY --from=builder /app/target/*.jar app.jar
 
-# Copy the built JAR from the builder stage
-COPY --from=builder /app/target/Approbation-0.0.1-SNAPSHOT.jar app.jar
-
-# Install dependencies for JasperReports (e.g., fonts)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    fontconfig \
-    fonts-dejavu \
-    && rm -rf /var/lib/apt/lists/*
-
-# Run as non-root user for security
-RUN useradd -m springuser
-USER springuser
-
-# Expose the default Spring Boot port
 EXPOSE 8080
-
-# Define health check (optional, for Kubernetes)
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8080/actuator/health || exit 1
-
-# Run the application with optimized JVM flags
-ENTRYPOINT ["java", "-Xms256m", "-Xmx512m", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
