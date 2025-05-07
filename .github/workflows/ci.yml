@@ -39,7 +39,7 @@ jobs:
 
       - name: Update image tag
         run: |
-          sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/approbation-backend:latest|" manifests/backend-deployment.yaml
+          sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/approbation-backend:latest|" manifests/backend/deployment.yaml
           cd manifests
           git config user.name "seifeddineAbidi"
           git config user.email "seifeddine.abidi@esprit.tn"
