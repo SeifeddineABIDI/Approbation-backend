@@ -1,57 +1,48 @@
-name: Backend CI
+name: Backend Pipeline
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [main]
 
 jobs:
-  build-and-deploy:
+  build-deploy:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-    - name: Build with Maven
-      run: mvn clean package
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Login to GitLab Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: registry.gitlab.com
-        username: ${{ secrets.GITLAB_REGISTRY_USER }}
-        password: ${{ secrets.GITLAB_REGISTRY_PASSWORD }}
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/approbation-backend:latest .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/approbation-backend:latest
 
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        push: true
-        tags: registry.gitlab.com/seifeddineAbidi/Approbation-backend:${{ github.sha }},registry.gitlab.com/seifeddineAbidi/Approbation-backend:latest
+      - name: Update Kubernetes manifests
+        uses: actions/checkout@v4
+        with:
+          repository: SeifeddineABIDI/k8s-manifests
+          path: manifests
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Checkout k8s-manifests repository
-      uses: actions/checkout@v4
-      with:
-        repository: seifeddineAbidi/k8s-manifests
-        token: ${{ secrets.GITHUB_PAT }}
-        path: k8s-manifests
-
-    - name: Update image tag in k8s-manifests
-      run: |
-        sed -i 's|registry.gitlab.com/seifeddineAbidi/Approbation-backend:.*|registry.gitlab.com/seifeddineAbidi/Approbation-backend:${{ github.sha }}|' k8s-manifests/backend/deployment.yaml
-        cd k8s-manifests
-        git config user.email "seifeddine.abidi@esprit.tn"
-        git config user.name "seifeddineAbidi"
-        git add .
-        git commit -m "Update backend image to ${{ github.sha }}"
-        git push origin main
+      - name: Update image tag
+        run: |
+          sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/approbation-backend:latest|" manifests/backend-deployment.yaml
+          cd manifests
+          git config user.name "seifeddineAbidi"
+          git config user.email "seifeddine.abidi@esprit.tn"
+          git add .
+          git commit -m "Update backend image"
+          git push
