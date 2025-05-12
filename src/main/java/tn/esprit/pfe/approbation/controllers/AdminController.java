@@ -25,7 +25,7 @@ import tn.esprit.pfe.approbation.services.IGestionUser;
 
 import java.util.List;
 
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/v1/admin")
 @PreAuthorize("hasRole('ADMIN')")
@@ -101,7 +101,7 @@ public class AdminController {
 
     @Transactional
     @DeleteMapping("/delete/{userId}")
-    @CrossOrigin(origins = "http://localhost:4200")
+    @CrossOrigin(origins = "*")
     public ResponseEntity<Void> deleteUser(@PathVariable Integer userId) {
         try {
             gestionUser.deleteUser(userId);

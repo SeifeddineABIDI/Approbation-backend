@@ -9,7 +9,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/chat")
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "*")
 public class ChatController {
 
     private final OllamaService ollamaService;
