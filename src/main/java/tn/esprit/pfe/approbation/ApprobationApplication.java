@@ -11,5 +11,4 @@ public class ApprobationApplication {
         SpringApplication.run(ApprobationApplication.class, args);
     }
 
-
 }
