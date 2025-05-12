@@ -17,12 +17,12 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
 @Configuration
 @RequiredArgsConstructor
 public class ApplicationConfig {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
 
     @Bean
     public UserDetailsService userDetailsService() {
@@ -31,7 +31,7 @@ public class ApplicationConfig {
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider() {
+    public AuthenticationProvider authenticationProvider(PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService());
         authProvider.setPasswordEncoder(passwordEncoder);
@@ -54,7 +54,7 @@ public class ApplicationConfig {
     }
 
     @Bean
-    public CommandLineRunner initDatabase() {
+    public CommandLineRunner initDatabase(PasswordEncoder passwordEncoder) {
         return args -> {
             userRepository.findByEmail("hughes.brian@company.com").ifPresentOrElse(
                     user -> System.out.println("Admin user already exists: " + user.getEmail()),
