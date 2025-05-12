@@ -31,7 +31,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @RestController
-@CrossOrigin(origins = "*", allowedHeaders = "*", allowCredentials = "true", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+@CrossOrigin(origins = "http://frontend.192.168.2.189.nip.io", allowedHeaders = "*", allowCredentials = "true", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
 @RequestMapping("/api/v1/management")
 @Tag(name = "Management")
 
@@ -66,7 +66,7 @@ public class UserController {
         gestionUser.addUser(user);
         return ResponseEntity.ok(user);
     }
-    @CrossOrigin(origins = "*")
+    @CrossOrigin(origins = "http://frontend.192.168.2.189.nip.io")
     @GetMapping("/{userId}/image")
     public ResponseEntity<byte[]> getUserImage(@PathVariable Integer userId) {
         Optional<User> user = userRepository.findById(userId);
