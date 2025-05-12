@@ -17,14 +17,13 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 @Configuration
 @RequiredArgsConstructor
 public class ApplicationConfig {
 
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    private final UserRepository userRepository;
     @Bean
     public UserDetailsService userDetailsService() {
         return username -> userRepository.findByEmail(username)
@@ -35,10 +34,9 @@ public class ApplicationConfig {
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService());
-        authProvider.setPasswordEncoder(passwordEncoder());
+        authProvider.setPasswordEncoder(passwordEncoder);
         return authProvider;
     }
-    
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
@@ -49,32 +47,34 @@ public class ApplicationConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();
     }
+
     @Bean
     public CommandLineRunner initDatabase() {
         return args -> {
-            if (userRepository.findByEmail("hughes.brian@company.com").isEmpty()) {
-                User adminUser = User.builder()
-                        .firstName("Brian")
-                        .lastName("Hughes")
-                        .email("hughes.brian@company.com")
-                        .password(passwordEncoder.encode("admin"))
-                        .role(Role.ADMIN) // Assuming Role.ADMIN exists in your Role enum
-                        .soldeConge(20.0) // Default from entity
-                        .soldeAutorisation(2) // Default from entity
-                        .occurAutorisation(2) // Default from entity
-                        .isOnLeave(false) // Default from entity
-                        .build();
+            userRepository.findByEmail("hughes.brian@company.com").ifPresentOrElse(
+                    user -> System.out.println("Admin user already exists: " + user.getEmail()),
+                    () -> {
+                        User adminUser = User.builder()
+                                .firstName("Brian")
+                                .lastName("Hughes")
+                                .email("hughes.brian@company.com")
+                                .password(passwordEncoder.encode("admin"))
+                                .role(Role.ADMIN)
+                                .soldeConge(20.0)
+                                .soldeAutorisation(2)
+                                .occurAutorisation(2)
+                                .isOnLeave(false)
+                                .build();
 
-                userRepository.save(adminUser);
-                System.out.println("Admin user initialized: hughes.brian@company.com");
-            } else {
-                System.out.println("Admin user already exists: hughes.brian@company.com");
-            }
+                        userRepository.save(adminUser);
+                        System.out.println("Admin user initialized: hughes.brian@company.com");
+                    }
+            );
         };
     }
-
 }

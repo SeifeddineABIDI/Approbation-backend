@@ -71,7 +71,7 @@ public class SecurityConfiguration {
 
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOrigins(List.of("http://localhost:4200")); // Allow Angular frontend
+                    config.setAllowedOrigins(List.of("http://frontend.192.168.2.189.nip.io")); // Allow Angular frontend
                     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     config.setAllowedHeaders(List.of("*"));
                     config.setAllowCredentials(true);
