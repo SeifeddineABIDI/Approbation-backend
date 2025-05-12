@@ -62,6 +62,7 @@ public class ApplicationConfig {
                         User adminUser = User.builder()
                                 .firstName("Brian")
                                 .lastName("Hughes")
+                                .matricule("2505EMP001")
                                 .email("hughes.brian@company.com")
                                 .password(passwordEncoder.encode("admin"))
                                 .role(Role.ADMIN)
