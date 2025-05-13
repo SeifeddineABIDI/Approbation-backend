@@ -60,6 +60,7 @@ public class SecurityConfiguration {
             "/swagger-resources/**",
             "/configuration/ui",
             "/configuration/security",
+            "/actuator/health"
     };
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
