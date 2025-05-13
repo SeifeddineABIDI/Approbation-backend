@@ -163,7 +163,7 @@ public class AuthenticationController {
         } while (passwordResetRepository.existsByToken(token));
         PasswordReset resetToken = new PasswordReset(token, user, LocalDateTime.now().plusHours(1));
         passwordResetRepository.save(resetToken);
-        String resetLink = "http://localhost:4200/reset-password/?token=" + token;
+        String resetLink = "http://frontend.192.168.2.189.nip.io/reset-password/?token=" + token;
         Map<String, Object> variables = new HashMap<>();
         variables.put("resetLink", resetLink);
         emailService.sendEmail(user.getEmail(),

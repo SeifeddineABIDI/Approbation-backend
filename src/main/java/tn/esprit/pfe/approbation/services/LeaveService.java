@@ -278,7 +278,7 @@ public class LeaveService {
         sendEmailNotification(leaveApproved, comments, user.getEmail(), user.getFirstName() + " " + user.getLastName());
     }
 
-    @Scheduled(cron = "0 0 0 1 * ?")
+   /* @Scheduled(cron = "0 0 0 1 * ?")
     public void accrueLeaveForWorkingUsers() {
         double dailyAccrualRate = 20.0 / 12;
         List<User> users = userRepository.findAll();
@@ -286,7 +286,7 @@ public class LeaveService {
             user.setSoldeConge(user.getSoldeConge() + dailyAccrualRate);
             userRepository.save(user);
         }
-    }
+    }*/
 
     /*@Scheduled(cron = "0 5 0 * * ?")
     public void updateLeaveStatus() {

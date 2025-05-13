@@ -9,7 +9,7 @@ import tn.esprit.pfe.approbation.services.NotificationService;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "http://frontend.192.168.2.189.nip.io", allowedHeaders = "*", allowCredentials = "true", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+@CrossOrigin(origins = "http://frontend.192.168.2.189.nip.io")
 @RequestMapping("/api/common/notifications")
 public class NotificationController {
 
