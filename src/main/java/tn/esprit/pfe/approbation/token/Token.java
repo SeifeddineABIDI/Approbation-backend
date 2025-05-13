@@ -13,13 +13,13 @@ import tn.esprit.pfe.approbation.entities.User;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Table(name = "token")
 public class Token {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     public Integer id;
 
-    @Lob
-    @Column(unique = true, length = 512)
+    @Column(unique = true, length = 512, nullable = false)
     public String token;
 
     @Enumerated(EnumType.STRING)
