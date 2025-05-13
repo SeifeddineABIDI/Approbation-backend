@@ -19,7 +19,7 @@ public class Token {
     public Integer id;
 
     @Lob
-    @Column(unique = true,columnDefinition = "TEXT")
+    @Column(unique = true, length = 512)
     public String token;
 
     @Enumerated(EnumType.STRING)
