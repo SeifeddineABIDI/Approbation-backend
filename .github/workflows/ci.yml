@@ -66,7 +66,7 @@ jobs:
             --push .
 
       - name: Checkout k8s-manifests repository
-        uses: actionsCheckout@v4
+        uses: actions/checkout@v4 # Fixed typo
         with:
           repository: SeifeddineABIDI/k8s-manifests
           path: manifests
