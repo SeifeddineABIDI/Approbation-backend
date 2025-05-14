@@ -1,8 +1,11 @@
 package tn.esprit.pfe.approbation.controllers;
 
+import org.camunda.bpm.engine.repository.ProcessDefinition;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -20,17 +23,32 @@ import java.util.stream.Collectors;
 public class BpmnController {
 
     private static final String CAMUNDA_ENGINE_URL = "http://frontend.192.168.2.189.nip.io:8080/engine-rest";
-    private static final String BPMN_DIR = "src/main/resources/static/modeler/";
+    private static final String BPMN_DIR = "static/modeler/";
 
     @GetMapping("/api/bpmn/files")
     public ResponseEntity<List<String>> getBpmnFiles() {
-        File folder = new File(BPMN_DIR);
-        if (!folder.exists() || !folder.isDirectory()) {
-            return ResponseEntity.badRequest().body(List.of("Directory not found"));
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            String url = CAMUNDA_ENGINE_URL + "/process-definition?latestVersion=true";
+
+            ResponseEntity<ProcessDefinition[]> response = restTemplate.getForEntity(url, ProcessDefinition[].class);
+            if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(List.of("Failed to fetch processes from Camunda"));
+            }
+
+            List<String> processNames = Arrays.stream(response.getBody())
+                    .map(def -> def.getName() != null ? def.getName() : def.getKey())
+                    .collect(Collectors.toList());
+
+            if (processNames.isEmpty()) {
+                return ResponseEntity.ok(List.of("No processes found"));
+            }
+            return ResponseEntity.ok(processNames);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(List.of("Error fetching processes: " + e.getMessage()));
         }
-        List<String> files = Arrays.stream(folder.list((dir, name) -> name.endsWith(".bpmn")))
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(files);
     }
 
     @GetMapping("/api/bpmn/{fileName}")
