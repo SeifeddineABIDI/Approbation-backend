@@ -45,6 +45,7 @@ public class SecurityConfiguration {
         return new DefaultResourceLoader();
     }
     private static final String[] WHITE_LIST_URL = {
+            "/**",
             "/camunda/**",
             "/notifications/**",
             "/engine-rest/**",
