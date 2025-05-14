@@ -1,6 +1,5 @@
 package tn.esprit.pfe.approbation.controllers;
 
-import org.camunda.bpm.engine.repository.ProcessDefinition;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ByteArrayResource;
@@ -50,7 +49,24 @@ public class BpmnController {
                     .body(List.of("Error fetching processes: " + e.getMessage()));
         }
     }
+    private static class ProcessDefinition {
+        private String id;
+        private String key;
+        private String name;
+        private String resource;
+        private String deploymentId;
 
+        public String getId() { return id; }
+        public void setId(String id) { this.id = id; }
+        public String getKey() { return key; }
+        public void setKey(String key) { this.key = key; }
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public String getResource() { return resource; }
+        public void setResource(String resource) { this.resource = resource; }
+        public String getDeploymentId() { return deploymentId; }
+        public void setDeploymentId(String deploymentId) { this.deploymentId = deploymentId; }
+    }
     @GetMapping("/api/bpmn/{fileName}")
     public String getBpmnFile(@PathVariable String fileName) throws IOException {
         Resource resource = new ClassPathResource("static/modeler/" + fileName);
