@@ -50,6 +50,8 @@ public class SecurityConfiguration {
             "/engine-rest/**",
             "/images/**",
             "/api/v1/auth/**",
+            "/api/bpmn/files",
+            "/api/bpmn/**",
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-ui.html",

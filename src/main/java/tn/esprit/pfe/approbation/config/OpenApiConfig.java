@@ -24,7 +24,7 @@ import io.swagger.v3.oas.annotations.servers.Server;
         servers = {
                 @Server(
                         description = "Local ENV",
-                        url = "http://localhost:8080"
+                        url = "http://frontend.192.168.2.189.nip.io:8080"
                 ),
                 @Server(
                         description = "PROD ENV")
