@@ -28,7 +28,7 @@
 			</staticText>
 			<image>
 				<reportElement x="0" y="0" width="110" height="50" uuid="d74288dc-996a-41b4-80c9-11b4d782f8d5"/>
-				<imageExpression><![CDATA["D:/Projects/Approbation/src/main/resources/templates/siga.png"]]></imageExpression>
+				<imageExpression><![CDATA["templates/siga.png"]]></imageExpression>
 			</image>
 		</band>
 	</title>
@@ -64,7 +64,7 @@
 			</staticText>
 			<image>
 				<reportElement x="0" y="326" width="119" height="50" uuid="f2449c3f-dee6-47d6-8ba1-b9bf68b60362"/>
-				<imageExpression><![CDATA["D:/Projects/Approbation/src/main/resources/templates/Signature.png"]]></imageExpression>
+				<imageExpression><![CDATA["templates/Signature.png"]]></imageExpression>
 			</image>
 			<textField>
 				<reportElement x="0" y="286" width="110" height="20" uuid="b922fd5a-f1bf-44f6-8733-324d28af1487"/>
