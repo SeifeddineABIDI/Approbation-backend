@@ -14,10 +14,12 @@ import java.util.Map;
 public class OllamaService {
 
     private final RestTemplate restTemplate;
-    private final String ollamaApiUrl = "http://approbation-ollama.default.svc.cluster.local:11434/api/generate";
-    private final String queryApiUrl = "http://backend.192.168.2.189.nip.io:8080/query/execute";
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
+    private final String ollamaApiUrl = System.getenv("OLLAMA_API_URL") != null
+            ? System.getenv("OLLAMA_API_URL")
+            : "http://approbation-ollama.default.svc.cluster.local:11434/api/generate";
+    private final String queryApiUrl = System.getenv("QUERY_API_URL") != null
+            ? System.getenv("QUERY_API_URL")
+            : "http://backend-service.default.svc.cluster.local:8080/query/execute";
     public OllamaService(RestTemplateBuilder builder) {
         this.restTemplate = builder.build();
     }

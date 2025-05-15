@@ -12,16 +12,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import tn.esprit.pfe.approbation.dtos.AuthorizationRequestDto;
 import tn.esprit.pfe.approbation.dtos.LeaveRequestDto;
-import tn.esprit.pfe.approbation.dtos.UserDto;
 import tn.esprit.pfe.approbation.dtos.UserFullNameDto;
 import tn.esprit.pfe.approbation.entities.LeaveRequest;
 import tn.esprit.pfe.approbation.entities.Role;
 import tn.esprit.pfe.approbation.entities.User;
-import tn.esprit.pfe.approbation.repositories.LeaveRequestRepository;
 import tn.esprit.pfe.approbation.repositories.UserRepository;
 import tn.esprit.pfe.approbation.services.IGestionUser;
 import tn.esprit.pfe.approbation.services.LeaveService;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,8 +37,6 @@ public class UserController {
     IGestionUser gestionUser;
     @Autowired
     private LeaveService leaveService;
-    @Autowired
-    private LeaveRequestRepository leaveRequestRepository;
     @Autowired
     private UserRepository userRepository;
 
@@ -113,7 +108,6 @@ public class UserController {
             }
             String originalFileName = StringUtils.cleanPath(imageFile.getOriginalFilename());
             String uniqueId = UUID.randomUUID().toString().replace("-", "");
-            String fileExtension = originalFileName.substring(originalFileName.lastIndexOf('.'));
             String modifiedFileName = uniqueId + "_" + originalFileName;
             Path filePath = uploadPath.resolve(modifiedFileName);
             int count = 1;

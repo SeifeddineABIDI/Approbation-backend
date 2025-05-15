@@ -12,7 +12,7 @@ import java.util.Map;
 @CrossOrigin(origins = "http://frontend.192.168.2.189.nip.io")
 public class QueryController {
 
-    private final QueryService queryService;
+    private final QueryService   queryService;
 
     public QueryController(QueryService queryService) {
         this.queryService = queryService;

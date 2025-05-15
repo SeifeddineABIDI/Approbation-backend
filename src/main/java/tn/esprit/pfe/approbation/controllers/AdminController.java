@@ -1,6 +1,5 @@
 package tn.esprit.pfe.approbation.controllers;
 
-import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
