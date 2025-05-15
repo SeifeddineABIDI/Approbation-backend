@@ -14,8 +14,8 @@ import java.util.Map;
 public class OllamaService {
 
     private final RestTemplate restTemplate;
-    private final String ollamaApiUrl = "http://frontend.192.168.2.189.nip.io:11434/api/generate";
-    private final String queryApiUrl = "http://frontend.192.168.2.189.nip.io:8080/query/execute";
+    private final String ollamaApiUrl = "http://approbation-ollama.default.svc.cluster.local:11434/api/generate";
+    private final String queryApiUrl = "http://backend.192.168.2.189.nip.io:8080/query/execute";
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public OllamaService(RestTemplateBuilder builder) {
