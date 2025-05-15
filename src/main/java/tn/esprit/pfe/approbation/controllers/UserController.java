@@ -61,7 +61,6 @@ public class UserController {
         gestionUser.addUser(user);
         return ResponseEntity.ok(user);
     }
-    @CrossOrigin(origins = "http://frontend.192.168.2.189.nip.io")
     @GetMapping("/{userId}/image")
     public ResponseEntity<byte[]> getUserImage(@PathVariable Integer userId) {
         Optional<User> user = userRepository.findById(userId);

@@ -18,8 +18,9 @@ import java.util.stream.Collectors;
 @RestController
 public class BpmnController {
 
-    private static final String CAMUNDA_ENGINE_URL = "http://backend.192.168.2.189.nip.io:8080/engine-rest";
-    private static final String BPMN_DIR = "static/modeler/";
+    private static final String CAMUNDA_ENGINE_URL = System.getenv("CAMUNDA_ENGINE_URL") != null
+            ? System.getenv("CAMUNDA_ENGINE_URL")
+            : "http://backend-service.default.svc.cluster.local:8080/engine-rest";    private static final String BPMN_DIR = "static/modeler/";
 
     @GetMapping("/api/bpmn/files")
     public ResponseEntity<List<String>> getBpmnFiles() {
