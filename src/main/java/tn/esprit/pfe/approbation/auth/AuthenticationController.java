@@ -37,13 +37,13 @@ public class AuthenticationController {
     private Boolean userExists;
     private String imagePath= "";
     private static final String IMAGE_DIRECTORY = "src/main/resources/static/images";
-    @Autowired
-    PasswordResetRepository passwordResetRepository;
-    @Autowired
-    EmailService emailService;
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-    @Autowired
+
+    private final PasswordResetRepository passwordResetRepository;
+
+    private final EmailService emailService;
+
+    private final PasswordEncoder passwordEncoder;
+
     private final RecaptchaService recaptchaService;
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse> register(
@@ -119,8 +119,7 @@ public class AuthenticationController {
 
     private String saveImage(MultipartFile imageFile) {
         try {
-            String uploadDir = "src/main/resources/static/images";
-            Path uploadPath = Paths.get(uploadDir);
+            Path uploadPath = Paths.get(IMAGE_DIRECTORY);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
@@ -130,9 +129,11 @@ public class AuthenticationController {
             Path filePath = uploadPath.resolve(modifiedFileName);
             int count = 1;
             while (Files.exists(filePath)) {
+                if(originalFileName!=null && !originalFileName.isEmpty()){
                 modifiedFileName = uniqueId + "_" + count + "_" + originalFileName;
                 filePath = uploadPath.resolve(modifiedFileName);
                 count++;
+                }
             }
             Files.copy(imageFile.getInputStream(), filePath);
             return filePath.toString();
