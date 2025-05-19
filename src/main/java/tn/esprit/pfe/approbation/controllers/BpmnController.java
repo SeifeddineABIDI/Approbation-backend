@@ -119,6 +119,34 @@ public class BpmnController {
         }
     }
 
+    @DeleteMapping("/api/bpmn/process/{definitionId}")
+    public ResponseEntity<String> deleteProcessDefinition(@PathVariable String definitionId) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            String url = CAMUNDA_ENGINE_URL + "/process-definition/" + definitionId;
+
+            ResponseEntity<Void> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.DELETE,
+                    null,
+                    Void.class
+            );
+
+            if (response.getStatusCode() == HttpStatus.NO_CONTENT) {
+                logger.info("Successfully deleted process definition: {}", definitionId);
+                return ResponseEntity.ok("Process definition deleted successfully: " + definitionId);
+            } else {
+                logger.error("Failed to delete process definition: {}, Status: {}", definitionId, response.getStatusCode());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Failed to delete process definition: " + definitionId);
+            }
+        } catch (Exception e) {
+            logger.error("Error deleting process definition {}: {}", definitionId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error deleting process definition: " + e.getMessage());
+        }
+    }
+
     private void deployToCamunda(String fileName, String bpmnXml) throws IOException {
         RestTemplate restTemplate = new RestTemplate();
         String deploymentUrl = CAMUNDA_ENGINE_URL + "/deployment/create";
