@@ -1,5 +1,7 @@
 package tn.esprit.pfe.approbation.controllers;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ByteArrayResource;
@@ -67,37 +69,54 @@ public class BpmnController {
     }
     @GetMapping("/api/bpmn/{fileName}")
     public String getBpmnFile(@PathVariable String fileName) throws IOException {
-        Resource resource = new ClassPathResource("static/modeler/" + fileName);
-        if (!resource.exists()) {
+        Logger logger = LoggerFactory.getLogger(BpmnController.class);
+        logger.info("Requesting BPMN file: {}", fileName);
+
+        // Try with and without .bpmn extension
+        String[] possibleFileNames = {fileName, fileName + ".bpmn"};
+        Resource resource = null;
+        String resolvedFileName = null;
+
+        for (String fname : possibleFileNames) {
+            resource = new ClassPathResource("static/modeler/" + fname);
+            if (resource.exists()) {
+                resolvedFileName = fname;
+                break;
+            }
+        }
+
+        if (resource == null || !resource.exists()) {
+            logger.error("BPMN file not found for: {}", fileName);
             throw new IOException("BPMN file not found: " + fileName);
         }
+
+        logger.info("Found BPMN file: static/modeler/{}", resolvedFileName);
         return new String(resource.getInputStream().readAllBytes());
     }
-
     @PutMapping("/api/bpmn/deploy")
     public ResponseEntity<String> updateDeployment(@RequestParam("fileName") String fileName) {
+        Logger logger = LoggerFactory.getLogger(BpmnController.class);
+        logger.info("Deploying BPMN file: {}", fileName);
         try {
-            Resource resource = new ClassPathResource("static/modeler/" + fileName);
+            String actualFileName = fileName.endsWith(".bpmn") ? fileName : fileName + ".bpmn";
+            Resource resource = new ClassPathResource("static/modeler/" + actualFileName);
             if (!resource.exists()) {
+                logger.error("BPMN file not found: {}", actualFileName);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("BPMN file not found: " + fileName);
             }
 
-            // Step 1: Find existing deployment
+            // Rest of the method remains the same
             String deploymentId = getDeploymentId(fileName);
             if (deploymentId != null) {
-                // Step 2: Delete existing deployment
                 deleteDeployment(deploymentId);
             }
-
-            // Step 3: Deploy new version of the process
             deployToCamunda(resource);
-
             return ResponseEntity.ok("BPMN file updated successfully: " + fileName);
         } catch (IOException e) {
+            logger.error("Error updating BPMN file: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error updating BPMN file: " + e.getMessage());
         }
     }
-
     private String getDeploymentId(String fileName) {
         RestTemplate restTemplate = new RestTemplate();
         String url = CAMUNDA_ENGINE_URL + "/deployment?name=" + fileName;
