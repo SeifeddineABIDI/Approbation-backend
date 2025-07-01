@@ -13,14 +13,14 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@CrossOrigin(origins = "http://frontend.192.168.2.189.nip.io")
+@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 public class BpmnController {
 
     private static final Logger logger = LoggerFactory.getLogger(BpmnController.class);
     private static final String CAMUNDA_ENGINE_URL = System.getenv("CAMUNDA_ENGINE_URL") != null
             ? System.getenv("CAMUNDA_ENGINE_URL")
-            : "http://backend-service.default.svc.cluster.local:8080/engine-rest";
+            : "http://localhost:8080/engine-rest";
 
     // Endpoint to list all process definitions grouped by key with versions
     @GetMapping("/api/bpmn/processes")

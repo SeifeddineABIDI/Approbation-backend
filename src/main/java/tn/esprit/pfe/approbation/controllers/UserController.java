@@ -28,7 +28,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @RestController
-@CrossOrigin(origins = "http://frontend.192.168.2.189.nip.io")
+@CrossOrigin(origins = "http://localhost:4200")
 @RequestMapping("/api/v1/management")
 @Tag(name = "Management")
 

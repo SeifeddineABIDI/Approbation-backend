@@ -28,7 +28,7 @@ import java.time.ZoneOffset;
 import java.util.*;
 
 @RestController
-@CrossOrigin(origins = "http://frontend.192.168.2.189.nip.io")
+@CrossOrigin(origins = "http://localhost:4200")
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthenticationController {

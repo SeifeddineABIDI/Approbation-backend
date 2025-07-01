@@ -9,7 +9,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/query")
-@CrossOrigin(origins = "http://frontend.192.168.2.189.nip.io")
+@CrossOrigin(origins = "http://localhost:4200")
 public class QueryController {
 
     private final QueryService   queryService;

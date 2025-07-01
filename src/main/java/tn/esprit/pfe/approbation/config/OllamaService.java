@@ -16,10 +16,10 @@ public class OllamaService {
     private final RestTemplate restTemplate;
     private final String ollamaApiUrl = System.getenv("OLLAMA_API_URL") != null
             ? System.getenv("OLLAMA_API_URL")
-            : "http://approbation-ollama.default.svc.cluster.local:11434/api/generate";
+            : "http://localhost:11434/api/generate";
     private final String queryApiUrl = System.getenv("QUERY_API_URL") != null
             ? System.getenv("QUERY_API_URL")
-            : "http://backend-service.default.svc.cluster.local:8080/query/execute";
+            : "http://  localhost:8080/query/execute";
     public OllamaService(RestTemplateBuilder builder) {
         this.restTemplate = builder.build();
     }
