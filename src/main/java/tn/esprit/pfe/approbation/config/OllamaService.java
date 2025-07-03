@@ -19,7 +19,7 @@ public class OllamaService {
             : "http://localhost:11434/api/generate";
     private final String queryApiUrl = System.getenv("QUERY_API_URL") != null
             ? System.getenv("QUERY_API_URL")
-            : "http://  localhost:8080/query/execute";
+            : "http://localhost:8080/query/execute";
     public OllamaService(RestTemplateBuilder builder) {
         this.restTemplate = builder.build();
     }
@@ -27,9 +27,10 @@ public class OllamaService {
     public String askOllama(String prompt) {
         try {
             // Step 1: Generate SQL query or detect non-data question
-            String ollamaPrompt = "Your name is Bird. You’re helping with a leave management system with tables USER (id, matricule, first_name, last_name, email, solde_conge, role, manager_id) and LEAVE_REQUEST (id, request_date, start_date, end_date, approved, proc_inst_id, user_id). " +
-                    "If the prompt asks for data, return a single SELECT SQL query. If it’s not about data, return 'CHAT'. " +
-                    "\nPrompt: " + prompt;
+            String ollamaPrompt = "Your name is Bird. You're helping with a leave management system. The database has these tables: " +
+                    "user (id, matricule, first_name, last_name, email, solde_conge, role, manager_id), leave_request (id, request_date, start_date, end_date, approved, proc_inst_id, user_id, go_after_midday, back_after_midday, type_id), type_conge (id, name). " +
+                    "user.manager_id is a foreign key to user.id. leave_request.user_id is a foreign key to user.id. leave_request.type_id is a foreign key to type_conge.id. " +
+                    "Only generate SELECT queries using real column names and lowercase table names, never use UPDATE, DELETE, INSERT, or DROP. Never use a semicolon at the end of the query. If the prompt is not about data, return 'CHAT'.\nPrompt: " + prompt;
 
             Map<String, Object> ollamaBody = new HashMap<>();
             ollamaBody.put("model", "llama3.2");
@@ -42,7 +43,7 @@ public class OllamaService {
 
             ResponseEntity<Map> ollamaResponse = restTemplate.postForEntity(ollamaApiUrl, ollamaRequest, Map.class);
             if (!ollamaResponse.getStatusCode().is2xxSuccessful() || ollamaResponse.getBody() == null) {
-                return "Whoops, couldn’t connect. Wanna try again?";
+                return "Whoops, couldn't connect. Wanna try again?";
             }
 
             String sqlQuery = (String) ollamaResponse.getBody().get("response");
@@ -56,17 +57,17 @@ public class OllamaService {
 
             ResponseEntity<Map> queryResponse = restTemplate.postForEntity(queryApiUrl, queryHttpRequest, Map.class);
             if (!queryResponse.getStatusCode().is2xxSuccessful() || queryResponse.getBody() == null) {
-                return "The query didn’t work—maybe a glitch? Try something else!";
+                return "The query didn't work—maybe a glitch? Try something else!";
             }
 
             String queryResult = (String) queryResponse.getBody().get("result");
             if (queryResult == null) {
-                return "Got nothing back from the database. Maybe it’s empty?";
+                return "Got nothing back from the database. Maybe it's empty?";
             }
 
             // Step 3: Format the answer
-            String formatPrompt = "Your name is Bird. You’re a chill chatbot. Take this JSON data and answer the user’s question like a friend. " +
-                    "If they want a name, just say 'FirstName LastName'. If there’s an error or no data, keep it casual like 'Oops, nada here!' " +
+            String formatPrompt = "Your name is Bird. You're a chill chatbot. Take this JSON data and answer the user's question like a friend. " +
+                    "If they want a name, just say 'FirstName LastName'. If there's an error or no data, keep it casual like 'Oops, nada here!' " +
                     "\nData: " + queryResult +
                     "\nQuestion: " + prompt;
 
@@ -81,10 +82,10 @@ public class OllamaService {
                 }
             }
 
-            return "Found something, but it’s kinda messy: " ;
+            return "Found something, but it's kinda messy: " ;
         } catch (RestClientException e) {
             System.err.println("RestClientException: " + e.getMessage());
-            return "Can’t reach the server right now—check if Ollama or the backend’s up!";
+            return "Can't reach the server right now";
         } catch (Exception e) {
             System.err.println("Unexpected error: " + e.getMessage());
             return "Something tripped up: " + e.getMessage();
@@ -92,8 +93,8 @@ public class OllamaService {
     }
 
     private String handleNonDataQuestion(String prompt) {
-        String ollamaPrompt = "Your name is Bird. You’re a friendly chatbot who loves to chat about anything. " +
-                "Answer the user’s prompt like you’re catching up with a buddy. Keep it short, natural, and fun. " +
+        String ollamaPrompt = "Your name is Bird. You're a friendly chatbot who loves to chat about anything. " +
+                "Answer the user's prompt like you're catching up with a buddy. Keep it short, natural, and fun. " +
                 "\nPrompt: " + prompt;
 
         Map<String, Object> ollamaBody = new HashMap<>();
@@ -109,12 +110,12 @@ public class OllamaService {
             ResponseEntity<Map> response = restTemplate.postForEntity(ollamaApiUrl, ollamaRequest, Map.class);
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 String reply = (String) response.getBody().get("response");
-                return reply != null ? reply : "Hmm, I’m drawing a blank. What else you got?";
+                return reply != null ? reply : "Hmm, I'm drawing a blank. What else you got?";
             }
-            return "Oops, couldn’t come up with a reply. Try again?";
+            return "Oops, couldn't come up with a reply. Try again?";
         } catch (RestClientException e) {
             System.err.println("RestClientException in non-data: " + e.getMessage());
-            return "Server’s acting shy—let’s try that again!";
+            return "Server's acting shy—let's try that again!";
         }
     }
 }

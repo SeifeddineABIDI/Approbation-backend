@@ -21,7 +21,7 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
     List<LeaveRequest> findByUserMatriculeAndApprovedOrderByIdDesc(String userId, Boolean approved);
     List<LeaveRequest> findByUserMatriculeOrderByIdDesc(String userId);
 
-    @Query("SELECT lr FROM LeaveRequest lr WHERE lr.user.matricule = :matricule AND " +
+    @Query("SELECT lr FROM LeaveRequest lr WHERE lr.user.matricule = :matricule AND (lr.approved IS NULL OR lr.approved = true) AND " +
             "(:startDate BETWEEN lr.startDate AND lr.endDate OR " +
             " :endDate BETWEEN lr.startDate AND lr.endDate OR " +
             " lr.startDate BETWEEN :startDate AND :endDate)")

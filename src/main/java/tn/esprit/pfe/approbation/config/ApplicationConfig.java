@@ -56,14 +56,14 @@ public class ApplicationConfig {
     @Bean
     public CommandLineRunner initDatabase(PasswordEncoder passwordEncoder) {
         return args -> {
-            userRepository.findByEmail("hughes.brian@company.com").ifPresentOrElse(
+            userRepository.findByEmail("admin@siga.tn").ifPresentOrElse(
                     user -> System.out.println("Admin user already exists: " + user.getEmail()),
                     () -> {
                         User adminUser = User.builder()
-                                .firstName("Brian")
-                                .lastName("Hughes")
-                                .matricule("2505EMP001")
-                                .email("hughes.brian@company.com")
+                                .firstName("Admin")
+                                .lastName("SIGA")
+                                .matricule("2506EMP001")
+                                .email("admin@siga.tn")
                                 .password(passwordEncoder.encode("admin"))
                                 .role(Role.ADMIN)
                                 .soldeConge(20.0)
@@ -73,7 +73,7 @@ public class ApplicationConfig {
                                 .build();
 
                         userRepository.save(adminUser);
-                        System.out.println("Admin user initialized: hughes.brian@company.com");
+                        System.out.println("Admin user initialized: admin@siga.tn");
                     }
             );
         };

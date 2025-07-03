@@ -33,6 +33,7 @@ import tn.esprit.pfe.approbation.repositories.LeaveRequestRepository;
 import tn.esprit.pfe.approbation.repositories.TypeCongeRepository;
 import tn.esprit.pfe.approbation.repositories.UserRepository;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -61,6 +62,33 @@ public class LeaveService {
     private TypeCongeRepository typeCongeRepository;
     @Autowired
     private NotificationService notificationService;
+
+    // Shared calculation logic for working days, including weekends and half-days
+    public static double calculateWorkingDays(LocalDateTime startDate, LocalDateTime endDate, Boolean goAfterMidday, Boolean backAfterMidday) {
+        double totalDays = 0.0;
+        LocalDate currentDate = startDate.toLocalDate();
+        LocalDate endDateOnly = endDate.toLocalDate();
+        int workingDays = 0;
+        while (!currentDate.isAfter(endDateOnly)) {
+            DayOfWeek dayOfWeek = currentDate.getDayOfWeek();
+            if (dayOfWeek != DayOfWeek.SATURDAY && dayOfWeek != DayOfWeek.SUNDAY) {
+                workingDays++;
+            }
+            currentDate = currentDate.plusDays(1);
+        }
+        totalDays = workingDays;
+        // Only subtract 0.5 if the first/last day is a working day
+        DayOfWeek firstDayOfWeek = startDate.toLocalDate().getDayOfWeek();
+        DayOfWeek lastDayOfWeek = endDate.toLocalDate().getDayOfWeek();
+        if (Boolean.TRUE.equals(goAfterMidday) && firstDayOfWeek != DayOfWeek.SATURDAY && firstDayOfWeek != DayOfWeek.SUNDAY) {
+            totalDays -= 0.5;
+        }
+        if (Boolean.TRUE.equals(backAfterMidday) && lastDayOfWeek != DayOfWeek.SATURDAY && lastDayOfWeek != DayOfWeek.SUNDAY) {
+            totalDays -= 0.5;
+        }
+        // Never allow deduction to exceed working days
+        return Math.max(Math.min(totalDays, workingDays), 0);
+    }
 
     public String handleLeaveRequest(LeaveRequestDto request) {
         User user = userRepository.findByMatricule(request.getUserId());
@@ -93,8 +121,9 @@ public class LeaveService {
         }
         boolean goAfterMidday = request.isGoAfterMidday();
         boolean backAfterMidday = request.isBackAfterMidday();
-        long daysRequested = ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate());
-        if (user.getSoldeConge() >= daysRequested) {
+        double daysRequested = calculateWorkingDays(startDateTime, endDateTime, goAfterMidday, backAfterMidday);
+        System.out.println("User balance: " + user.getSoldeConge() + ", Days requested: " + daysRequested);
+        if (user.getSoldeConge() + 0.001 >= daysRequested) {
             LeaveRequest leaveRequest = new LeaveRequest();
             leaveRequest.setUser(user);
             leaveRequest.setStartDate(startDateTime);
@@ -149,7 +178,7 @@ public class LeaveService {
             } else {
                 throw new IllegalStateException("Task not found for process instance: " + processInstance.getId());
             }
-            return "Leave request created and process started with process instance id: " + processInstance.getId();
+            return "Leave request sent successfully";
         } else {
             return "Insufficient leave balance.";
         }
@@ -486,6 +515,16 @@ public class LeaveService {
         for (Task task : tasks) {
             taskService.setOwner(task.getId(), request.getUserId());
         }
+        // Send notification to manager
+        Notification notification = new Notification();
+        notification.setUserId(manager.getMatricule());
+        notification.setTitle("New Authorization Request submitted");
+        notification.setDescription("New authorization request from " + user.getFirstName() + " " + user.getLastName());
+        notification.setTime(LocalDateTime.now().toString());
+        notification.setRead(false);
+        notification.setLink("/requests/confirmList");
+        notification.setUseRouter(true);
+        notificationService.createNotification(notification);
         if (!tasks.isEmpty()) {
             Task firstTask = tasks.get(0);
             taskService.setAssignee(firstTask.getId(), manager.getMatricule());
@@ -506,7 +545,7 @@ public class LeaveService {
         } else {
             throw new IllegalStateException("Task not found for process instance: " + processInstance.getId());
         }
-        return "Authorization request created and process started with process instance id: " + processInstance.getId();
+        return "Authorization request sent successfully";
     }
 
 }

@@ -39,8 +39,11 @@ public class QueryService {
             }
 
             Query query = entityManager.createNativeQuery(sql);
-            List<Object> results = query.getResultList();
+            List<?> results = query.getResultList();
             List<Map<String, Object>> resultList = new ArrayList<>();
+
+            // Use generic column names for native queries
+            List<String> columnNames = new ArrayList<>(); // Will use col_0, col_1, etc.
 
             if (results.isEmpty()) {
                 return "{\"results\": [], \"message\": \"Nada found.\"}";
@@ -48,28 +51,20 @@ public class QueryService {
 
             for (Object result : results) {
                 Map<String, Object> row = new HashMap<>();
-                if (result instanceof Object[]) {
-                    Object[] columns = (Object[]) result;
-                    if (normalizedSql.contains("first_name") && columns.length >= 2) {
-                        row.put("first_name", columns[0]);
-                        row.put("last_name", columns[1]);
-                        if (columns.length > 2) {
-                            row.put("extra", columns[2]);
-                        }
-                    } else {
-                        for (int i = 0; i < columns.length; i++) {
-                            row.put("col_" + i, columns[i]);
-                        }
+                if (result instanceof Object[] arr) {
+                    for (int i = 0; i < arr.length; i++) {
+                        String colName = "col_" + i;
+                        row.put(colName, arr[i]);
                     }
                 } else {
-                    row.put("value", result);
+                    row.put(columnNames.isEmpty() ? "value" : columnNames.get(0), result);
                 }
                 resultList.add(row);
             }
 
             return objectMapper.writeValueAsString(Map.of("results", resultList));
         } catch (Exception e) {
-            return String.format("{\"error\": \"Query didn’t fly: %s\"}", e.getMessage());
+            return String.format("{\"error\": \"Query didn't fly: %s\"}", e.getMessage());
         }
     }
 }

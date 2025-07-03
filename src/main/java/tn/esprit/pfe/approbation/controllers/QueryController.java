@@ -5,6 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tn.esprit.pfe.approbation.config.QueryService;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -21,9 +23,11 @@ public class QueryController {
     @PostMapping("/execute")
     public ResponseEntity<?> executeQuery(@RequestBody Map<String, String> queryRequest) {
         try {
+            System.out.println("Received SQL query: " + queryRequest.get("sql"));
             String result = queryService.executeQuery(queryRequest);
             return ResponseEntity.ok(Map.of("result", result));
         } catch (Exception e) {
+            System.err.println("Query execution error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Something broke: " + e.getMessage()));
         }

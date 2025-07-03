@@ -12,13 +12,19 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 import tn.esprit.pfe.approbation.entities.User;
 import tn.esprit.pfe.approbation.repositories.UserRepository;
 import org.thymeleaf.context.Context;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Transactional;
+import tn.esprit.pfe.approbation.services.LeaveService;
 
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
+@Transactional
 @Component
 public class UpdateConge implements JavaDelegate {
+    private static final Logger logger = LoggerFactory.getLogger(UpdateConge.class);
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -31,43 +37,75 @@ public class UpdateConge implements JavaDelegate {
         String userId = (String) execution.getVariable("userId");
         LocalDateTime startDate = (LocalDateTime) execution.getVariable("startDate");
         LocalDateTime endDate = (LocalDateTime) execution.getVariable("endDate");
+        Boolean goAfterMidday = (Boolean) execution.getVariable("goAfterMidday");
+        Boolean backAfterMidday = (Boolean) execution.getVariable("backAfterMidday");
         boolean leaveApproved = (boolean) execution.getVariable("leaveApproved");
         String refusalComment = (String) execution.getVariable("refusalComment");
 
         User user = userRepository.findByMatricule(userId);
         if (user == null) {
+            logger.error("User not found for matricule: {}", userId);
             throw new Exception("User not found");
         }
 
-        // Calculate working days excluding Saturdays and Sundays
-        int workingDays = calculateWorkingDays(startDate, endDate);
+        logger.info("[UpdateConge] Before update: userId={}, soldeConge={}", userId, user.getSoldeConge());
+        // Calculate working days excluding Saturdays and Sundays, then subtract 0.5 for goAfterMidday and/or backAfterMidday if true
+        double workingDays = LeaveService.calculateWorkingDays(startDate, endDate, goAfterMidday, backAfterMidday);
 
         if (leaveApproved) {
             user.setSoldeConge(user.getSoldeConge() - workingDays);
             userRepository.save(user);
+            logger.info("[UpdateConge] After update: userId={}, soldeConge={}", userId, user.getSoldeConge());
             sendEmail(user.getEmail(), user.getFirstName(), "approved", "Your leave request has been approved.");
         }
         if (!leaveApproved && refusalComment != null && !refusalComment.isEmpty()) {
-            System.out.println("Refusal comment: " + refusalComment);
+            logger.info("[UpdateConge] Leave refused for userId={}, comment={}", userId, refusalComment);
             sendEmail(user.getEmail(), user.getFirstName(), "rejected", "Reason: " + refusalComment);
         }
 
         execution.setVariable("leaveApproved", leaveApproved);
     }
 
-    private int calculateWorkingDays(LocalDateTime startDate, LocalDateTime endDate) {
-        int workingDays = 0;
-        LocalDateTime currentDate = startDate.toLocalDate().atStartOfDay(); // Start at midnight of the start date
+    private double calculateWorkingDays(LocalDateTime startDate, LocalDateTime endDate, Boolean goAfterMidday, Boolean backAfterMidday) {
+        double totalDays = 0.0;
+        LocalDateTime currentDate = startDate.toLocalDate().atStartOfDay();
+        LocalDateTime endDateAtStart = endDate.toLocalDate().atStartOfDay();
+        boolean isFirstDay = true;
+        boolean isLastDay = false;
 
-        while (!currentDate.isAfter(endDate)) {
+        while (!currentDate.isAfter(endDateAtStart)) {
             DayOfWeek dayOfWeek = currentDate.getDayOfWeek();
             if (dayOfWeek != DayOfWeek.SATURDAY && dayOfWeek != DayOfWeek.SUNDAY) {
-                workingDays++;
+                isLastDay = currentDate.toLocalDate().equals(endDate.toLocalDate());
+                if (isFirstDay && isLastDay) {
+                    // Leave starts and ends on the same day
+                    if (Boolean.TRUE.equals(goAfterMidday) && Boolean.TRUE.equals(backAfterMidday)) {
+                        totalDays += 1.0; // Depart and return after midday: full day
+                    } else if (Boolean.TRUE.equals(goAfterMidday) || Boolean.TRUE.equals(backAfterMidday)) {
+                        totalDays += 0.5; // Either depart or return after midday: half-day
+                    } else {
+                        totalDays += 1.0; // Full day
+                    }
+                } else if (isFirstDay) {
+                    if (Boolean.TRUE.equals(goAfterMidday)) {
+                        totalDays += 0.5; // Depart after midday: half-day
+                    } else {
+                        totalDays += 1.0; // Full day
+                    }
+                } else if (isLastDay) {
+                    if (Boolean.TRUE.equals(backAfterMidday)) {
+                        totalDays += 1.0; // Return after midday: full day
+                    } else {
+                        totalDays += 0.5; // Return before midday: half-day
+                    }
+                } else {
+                    totalDays += 1.0; // Full day
+                }
             }
+            isFirstDay = false;
             currentDate = currentDate.plusDays(1);
         }
-
-        return workingDays;
+        return totalDays;
     }
 
     public void sendEmail(String to, String userName, String status, String message) throws MessagingException {

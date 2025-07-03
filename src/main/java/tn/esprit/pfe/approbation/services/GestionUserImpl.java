@@ -51,6 +51,8 @@ public class GestionUserImpl implements IGestionUser {
     public User addUser(User user) {
         if (user.getMatricule() == null || user.getMatricule().isEmpty()) {
             user.setMatricule(generateMatricule());
+            user.setSoldeAutorisation(2);
+            user.setOccurAutorisation(2);
         }
         return userRepository.save(user);
         }
